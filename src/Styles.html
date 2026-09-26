@@ -1,0 +1,204 @@
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --text: var(--tg-theme-text-color, #1c1c1e);
+    --hint: var(--tg-theme-hint-color, #8e8e93);
+    --link: var(--tg-theme-link-color, #2481cc);
+    --button: var(--tg-theme-button-color, #2481cc);
+    --button-text: var(--tg-theme-button-text-color, #ffffff);
+    --section-bg: var(--tg-theme-secondary-bg-color, #f2f2f7);
+    --border: rgba(120, 120, 128, 0.24);
+    --danger: #e53935;
+    --warn: #ff9500;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+  }
+
+  #app { padding: 12px 12px 84px; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  h2 { font-size: 17px; margin: 4px 0 12px; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--hint);
+    margin: 14px 0 4px;
+  }
+
+  textarea, input[type="text"], input[type="number"], select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--section-bg);
+    color: var(--text);
+    font-size: 15px;
+  }
+
+  textarea { resize: vertical; min-height: 70px; }
+
+  .field.warn input,
+  .field.warn select,
+  .field.warn textarea {
+    border-color: var(--warn);
+    box-shadow: 0 0 0 1px var(--warn) inset;
+  }
+
+  .field-note {
+    font-size: 12px;
+    color: var(--warn);
+    margin-top: 4px;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+  .chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--section-bg);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--link);
+  }
+
+  .combo { position: relative; }
+
+  .combo-list {
+    position: absolute;
+    left: 0; right: 0; top: calc(100% + 2px);
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    z-index: 20;
+    display: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+
+  .combo-list.open { display: block; }
+
+  .combo-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .combo-item:last-child { border-bottom: none; }
+
+  .damage-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .damage-row .field { margin: 0; }
+
+  button.primary {
+    width: 100%;
+    margin-top: 20px;
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    background: var(--button);
+    color: var(--button-text);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  button.secondary {
+    width: 100%;
+    margin-top: 8px;
+    padding: 11px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .record-card {
+    background: var(--section-bg);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .record-card .top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--hint);
+    margin-bottom: 4px;
+  }
+
+  .record-card .title { font-weight: 600; margin-bottom: 4px; }
+  .record-card .fabula { font-size: 13px; color: var(--hint); margin-bottom: 8px; }
+
+  .record-actions { display: flex; gap: 8px; }
+
+  .record-actions button {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .record-actions button.delete { color: var(--danger); }
+
+  .empty-hint { color: var(--hint); text-align: center; margin-top: 40px; }
+
+  .tabbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    background: none;
+    border: none;
+    color: var(--hint);
+    font-size: 13px;
+  }
+
+  .tab-btn.active { color: var(--link); font-weight: 600; }
+
+  #toast {
+    position: fixed;
+    left: 16px; right: 16px; bottom: 76px;
+    background: #1c1c1e;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 50;
+  }
+
+  #toast.show { opacity: 0.95; }
+
+  .hidden { display: none !important; }
+</style>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div id="app">
+
+    <div id="screen-add" class="screen active">
+      <h2>Внести нарушение</h2>
+
+      <label for="raw-text">Вставь текст</label>
+      <textarea id="raw-text" placeholder="ТТ, ПІБ, дата… фабула…"></textarea>
+      <button class="secondary" id="parse-btn">Разобрать</button>
+
+      <div class="field" id="field-store">
+        <label>ТТ</label>
+        <div class="combo">
+          <input type="text" id="store-input" placeholder="Начните вводить номер или название" autocomplete="off">
+          <div class="combo-list" id="store-list"></div>
+        </div>
+        <div class="field-note hidden" id="store-note">ТТ не найдена в справочнике</div>
+      </div>
+
+      <label>Менеджер</label>
+      <input type="text" id="manager-input" disabled>
+
+      <div class="field" id="field-employee">
+        <label>ПІБ співробітника ТТ</label>
+        <input type="text" id="employee-input">
+      </div>
+
+      <div class="field" id="field-fabula">
+        <label>Фабула</label>
+        <textarea id="fabula-input"></textarea>
+      </div>
+
+      <div class="field" id="field-violation">
+        <label>Тип нарушения</label>
+        <select id="violation-select">
+          <option value="">— выберите —</option>
+        </select>
+        <div class="field-note hidden" id="violation-note">Тип определён автоматически, проверьте</div>
+        <div class="chips hidden" id="violation-chips"></div>
+      </div>
+
+      <div id="damage-block" class="hidden">
+        <label>Шкода (только 1 категорія)</label>
+        <div class="damage-row">
+          <div class="field">
+            <input type="number" id="damage-customer" placeholder="Покупцю">
+          </div>
+          <div class="field">
+            <input type="number" id="damage-store" placeholder="Магазину">
+          </div>
+          <div class="field">
+            <input type="number" id="damage-reimbursed" placeholder="Відшкодовано">
+          </div>
+        </div>
+      </div>
+
+      <button class="primary" id="submit-btn">Внести</button>
+      <button class="secondary hidden" id="cancel-edit-btn">Скасувати редагування</button>
+    </div>
+
+    <div id="screen-list" class="screen">
+      <h2>Останні записи</h2>
+      <div id="records-container"></div>
+    </div>
+
+    <nav class="tabbar">
+      <button class="tab-btn active" data-screen="add">Внести</button>
+      <button class="tab-btn" data-screen="list">Останні</button>
+    </nav>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <?!= include('JavaScript'); ?>
+</body>
+</html>
