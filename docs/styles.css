@@ -10,6 +10,7 @@
   --border: rgba(255, 255, 255, 0.08);
   --warn: #f5a623;
   --danger: #ff5470;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -81,6 +82,12 @@ textarea::placeholder, input::placeholder { color: var(--text-secondary); }
 select {
   -webkit-appearance: none;
   appearance: none;
+}
+
+select option,
+select optgroup {
+  background: var(--card-2);
+  color: var(--text);
 }
 
 textarea { resize: vertical; min-height: 70px; }
