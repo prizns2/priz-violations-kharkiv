@@ -1,32 +1,9 @@
 /****************************************************************
- * ВХІД У WEB APP
- ****************************************************************/
-
-function doGet(e) {
-  if (e && e.parameter && e.parameter.diag === '1') {
-    var props = PropertiesService.getScriptProperties();
-    return ContentService.createTextOutput(JSON.stringify({
-      botTokenSet: !!props.getProperty('BOT_TOKEN'),
-      ownerIdSet: !!props.getProperty('OWNER_TELEGRAM_ID')
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
-
-  return HtmlService.createTemplateFromFile('index')
-    .evaluate()
-    .setTitle('PRIZ — Порушення')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-
-/****************************************************************
  * JSON RPC-шлюз для статичного фронтенду (GitHub Pages).
  * Apps Script HtmlService у браузері подвійно обгортає сторінку
- * в iframe, тому Telegram-хеш з initData до неї не доходить —
- * саму сторінку віддаємо з окремого хостингу, а сюди ходимо як в API.
+ * в iframe (на іншому домені googleusercontent.com), тому хеш,
+ * куди Telegram кладе initData, до неї не доходить — саму сторінку
+ * тому віддаємо з окремого хостингу (docs/), а сюди ходимо як в API.
  *
  * Тіло запиту: {"fn": "bootstrap", "args": [initData, ...]}
  * Відповідь: те саме, що повертає відповідна api_* функція.
@@ -53,4 +30,13 @@ function doPost(e) {
   }
   return ContentService.createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/** Просте GET-опитування для перевірки, що Script Properties задані. */
+function doGet(e) {
+  var props = PropertiesService.getScriptProperties();
+  return ContentService.createTextOutput(JSON.stringify({
+    botTokenSet: !!props.getProperty('BOT_TOKEN'),
+    ownerIdSet: !!props.getProperty('OWNER_TELEGRAM_ID')
+  })).setMimeType(ContentService.MimeType.JSON);
 }
