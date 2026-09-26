@@ -27,5 +27,7 @@ var CONFIG = {
   RECORD_ID_PREFIX: 'app:',
   TIMEZONE: 'Europe/Kyiv',
 
+  LIST_LIMIT: 30, // скільки останніх власних записів показувати у списках
+
   MINI_APP_URL: 'https://prizns2.github.io/priz-violations-kharkiv/'
 };

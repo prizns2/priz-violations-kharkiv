@@ -237,44 +237,65 @@ function deleteRecord_(ss, id) {
   found.sheet.deleteRow(found.row);
 }
 
+/**
+ * Швидкий пошук власних записів: спершу читаємо ТІЛЬКИ колонку з ID
+ * (одна колонка замість 15), беремо останні `limit` записів із префіксом app:
+ * і читаємо лише нижній блок листа, де вони лежать (записи впорядковані за датою).
+ * Повертає [{ row, id, values }] для блоку колонок 1..numColumns.
+ */
+function readOwnRows_(sheet, firstRow, idColumn, numColumns, limit) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < firstRow) return [];
+
+  var ids = sheet.getRange(firstRow, idColumn, lastRow - firstRow + 1, 1).getDisplayValues();
+  var own = [];
+  for (var i = ids.length - 1; i >= 0 && own.length < limit; i--) {
+    var id = String(ids[i][0] || '').trim();
+    if (id.indexOf(CONFIG.RECORD_ID_PREFIX) === 0) own.push({ row: firstRow + i, id: id });
+  }
+  if (!own.length) return [];
+
+  var minRow = own[own.length - 1].row;
+  var block = sheet.getRange(minRow, 1, lastRow - minRow + 1, numColumns).getDisplayValues();
+  return own.map(function (o) {
+    return { row: o.row, id: o.id, values: block[o.row - minRow] };
+  });
+}
+
+/** dd.MM.yyyy → yyyyMMdd для правильного сортування за датою */
+function dateKey_(s) {
+  var m = String(s || '').match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  return m ? m[3] + m[2].padStart(2, '0') + m[1].padStart(2, '0') : '';
+}
+
 function listOwnRecords_(ss) {
   var out = [];
 
   [1, 2].forEach(function (category) {
     var sheet = getCategorySheet_(ss, category);
-    var lastRow = sheet.getLastRow();
-    if (lastRow < CONFIG.FIRST_DATA_ROW) return;
-
-    var rowCount = lastRow - CONFIG.FIRST_DATA_ROW + 1;
-    var values = sheet
-      .getRange(CONFIG.FIRST_DATA_ROW, 1, rowCount, CONFIG.RECORD_ID_COLUMN)
-      .getDisplayValues();
-
-    for (var i = 0; i < values.length; i++) {
-      var id = String(values[i][CONFIG.RECORD_ID_COLUMN - 1] || '').trim();
-      if (id.indexOf(CONFIG.RECORD_ID_PREFIX) !== 0) continue;
-
-      var storeName = values[i][3];
+    readOwnRows_(sheet, CONFIG.FIRST_DATA_ROW, CONFIG.RECORD_ID_COLUMN, 12, CONFIG.LIST_LIMIT).forEach(function (r) {
+      var v = r.values;
+      var storeName = v[3];
       var storeMatch = storeName.match(/^(\d{1,3})\b/);
 
       out.push({
-        id: id,
+        id: r.id,
         category: category,
-        date: values[i][1],
+        date: v[1],
         storeCode: storeMatch ? storeMatch[1].padStart(3, '0') : '',
         storeName: storeName,
-        manager: values[i][4],
-        violation: values[i][5],
-        employeeName: values[i][6],
-        fabula: values[i][7],
-        customerDamage: category === 1 ? values[i][8] : '',
-        storeDamage: category === 1 ? values[i][9] : '',
-        reimbursedCustomer: category === 1 ? values[i][10] : '',
-        reimbursedStore: category === 1 ? values[i][11] : ''
+        manager: v[4],
+        violation: v[5],
+        employeeName: v[6],
+        fabula: v[7],
+        customerDamage: category === 1 ? v[8] : '',
+        storeDamage: category === 1 ? v[9] : '',
+        reimbursedCustomer: category === 1 ? v[10] : '',
+        reimbursedStore: category === 1 ? v[11] : ''
       });
-    }
+    });
   });
 
-  out.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
-  return out;
+  out.sort(function (a, b) { return dateKey_(b.date) < dateKey_(a.date) ? -1 : dateKey_(b.date) > dateKey_(a.date) ? 1 : 0; });
+  return out.slice(0, CONFIG.LIST_LIMIT);
 }

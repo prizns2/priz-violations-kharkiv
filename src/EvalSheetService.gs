@@ -104,40 +104,30 @@ function deleteEval_(ss, id) {
 
 function listOwnEvals_(ss) {
   var sheet = getEvalSheet_(ss);
-  var lastRow = sheet.getLastRow();
-  if (lastRow < CONFIG.EVAL_FIRST_DATA_ROW) return [];
 
-  var rowCount = lastRow - CONFIG.EVAL_FIRST_DATA_ROW + 1;
-  var values = sheet
-    .getRange(CONFIG.EVAL_FIRST_DATA_ROW, 1, rowCount, CONFIG.EVAL_ID_COLUMN)
-    .getDisplayValues();
-
-  var out = [];
-  for (var i = 0; i < values.length; i++) {
-    var id = String(values[i][CONFIG.EVAL_ID_COLUMN - 1] || '').trim();
-    if (id.indexOf(CONFIG.RECORD_ID_PREFIX) !== 0) continue;
-
-    var storeName = values[i][4];
+  var out = readOwnRows_(sheet, CONFIG.EVAL_FIRST_DATA_ROW, CONFIG.EVAL_ID_COLUMN, 15, CONFIG.LIST_LIMIT).map(function (r) {
+    var v = r.values;
+    var storeName = v[4];
     var storeMatch = storeName.match(/^(\d{1,3})\b/);
 
-    out.push({
-      id: id,
-      date: values[i][2],
-      seller: values[i][3],
+    return {
+      id: r.id,
+      date: v[2],
+      seller: v[3],
       storeCode: storeMatch ? storeMatch[1].padStart(3, '0') : '',
       storeName: storeName,
-      manager: values[i][5],
-      time: values[i][6],
-      gender: values[i][7],
-      meeting: values[i][8],
-      needs: values[i][9],
-      extraSales: values[i][10],
-      sale: values[i][11],
-      closing: values[i][12],
-      comment: values[i][14]
-    });
-  }
+      manager: v[5],
+      time: v[6],
+      gender: v[7],
+      meeting: v[8],
+      needs: v[9],
+      extraSales: v[10],
+      sale: v[11],
+      closing: v[12],
+      comment: v[14]
+    };
+  });
 
-  out.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+  out.sort(function (a, b) { return dateKey_(b.date) < dateKey_(a.date) ? -1 : dateKey_(b.date) > dateKey_(a.date) ? 1 : 0; });
   return out;
 }

@@ -344,6 +344,7 @@
       if (!res.ok) { showToast(res.error); return; }
       showToast(state.editingId ? 'Збережено' : 'Записано');
       resetForm();
+      loadRecords();
     };
     var onFail = function (err) {
       els.submitBtn.disabled = false;
@@ -451,15 +452,28 @@
 
   /* ---------- список записей ---------- */
 
+  function cacheGet_(key) {
+    try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+  }
+
+  function cacheSet_(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* без кешу теж працює */ }
+  }
+
+  /* Показуємо збережений список одразу, а свіжий підтягуємо у фоні. */
   function loadRecords() {
-    els.recordsContainer.innerHTML = '<div class="empty-hint">Завантаження…</div>';
+    var cached = cacheGet_('recs');
+    if (cached) renderRecords(cached);
+    else els.recordsContainer.innerHTML = '<div class="empty-hint">Завантаження…</div>';
+
     callApi('listMine', [initData])
       .then(function (res) {
-        if (!res.ok) { els.recordsContainer.innerHTML = '<div class="empty-hint">' + res.error + '</div>'; return; }
+        if (!res.ok) { if (!cached) els.recordsContainer.innerHTML = '<div class="empty-hint">' + res.error + '</div>'; return; }
+        cacheSet_('recs', res.records);
         renderRecords(res.records);
       })
       .catch(function (err) {
-        els.recordsContainer.innerHTML = '<div class="empty-hint">' + String(err) + '</div>';
+        if (!cached) els.recordsContainer.innerHTML = '<div class="empty-hint">' + String(err) + '</div>';
       });
   }
 
@@ -653,14 +667,18 @@
   els.evalCancelEditBtn.addEventListener('click', resetEvalForm);
 
   function loadEvals() {
-    els.evalRecordsContainer.innerHTML = '<div class="empty-hint">Завантаження…</div>';
+    var cached = cacheGet_('evals');
+    if (cached) renderEvalRecords(cached);
+    else els.evalRecordsContainer.innerHTML = '<div class="empty-hint">Завантаження…</div>';
+
     callApi('listMyEvals', [initData])
       .then(function (res) {
-        if (!res.ok) { els.evalRecordsContainer.innerHTML = '<div class="empty-hint">' + res.error + '</div>'; return; }
+        if (!res.ok) { if (!cached) els.evalRecordsContainer.innerHTML = '<div class="empty-hint">' + res.error + '</div>'; return; }
+        cacheSet_('evals', res.records);
         renderEvalRecords(res.records);
       })
       .catch(function (err) {
-        els.evalRecordsContainer.innerHTML = '<div class="empty-hint">' + String(err) + '</div>';
+        if (!cached) els.evalRecordsContainer.innerHTML = '<div class="empty-hint">' + String(err) + '</div>';
       });
   }
 
@@ -744,6 +762,8 @@
       state.category1 = res.category1;
       state.category2 = res.category2;
       fillViolationSelect();
+      loadRecords();
+      loadEvals();
     })
     .catch(function (err) {
       document.getElementById('app').innerHTML = '<div class="empty-hint">' + String(err) + '</div>';

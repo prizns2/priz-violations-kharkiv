@@ -130,6 +130,7 @@ function api_submitBulk(initDataRaw, items) {
 
     if (byCategory[1].length) appendRecordsBatch_(ss, 1, byCategory[1]);
     if (byCategory[2].length) appendRecordsBatch_(ss, 2, byCategory[2]);
+    invalidateLists_();
 
     return { ok: true, results: results };
   } catch (e) {
@@ -175,6 +176,7 @@ function api_submit(initDataRaw, payload) {
     var id = generateRecordId_();
     var fields = buildFields_(payload);
     appendRecord_(ss, payload.category, fields, id);
+    invalidateLists_();
     return { ok: true, id: id };
   } catch (e) {
     logError_(ss, 'Помилка внесення запису', String(e.message || e), user, payload);
@@ -182,10 +184,24 @@ function api_submit(initDataRaw, payload) {
   }
 }
 
+/** Кеш списків на 5 хв.; будь-який наш запис/правка/видалення скидає його. */
+function cachedList_(key, compute) {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+  var value = compute();
+  try { cache.put(key, JSON.stringify(value), 300); } catch (e) { /* завеликий для кешу — не критично */ }
+  return value;
+}
+
+function invalidateLists_() {
+  CacheService.getScriptCache().removeAll(['list_recs', 'list_evals']);
+}
+
 function api_listMine(initDataRaw) {
   try {
     verifyInitData_(initDataRaw);
-    return { ok: true, records: listOwnRecords_(getSpreadsheet_()) };
+    return { ok: true, records: cachedList_('list_recs', function () { return listOwnRecords_(getSpreadsheet_()); }) };
   } catch (e) {
     return { ok: false, error: String(e.message || e) };
   }
@@ -200,6 +216,7 @@ function api_updateRecord(initDataRaw, id, payload) {
     var fields = buildFields_(payload);
     fields.category = payload.category;
     updateRecord_(ss, id, fields);
+    invalidateLists_();
     return { ok: true };
   } catch (e) {
     logError_(ss, 'Помилка редагування запису', String(e.message || e), user, payload);
@@ -213,6 +230,7 @@ function api_deleteRecord(initDataRaw, id) {
   try {
     user = verifyInitData_(initDataRaw);
     deleteRecord_(ss, id);
+    invalidateLists_();
     return { ok: true };
   } catch (e) {
     logError_(ss, 'Помилка видалення запису', String(e.message || e), user, { id: id });
@@ -257,6 +275,7 @@ function api_submitEval(initDataRaw, payload) {
     var id = generateRecordId_();
     var fields = buildEvalFields_(payload);
     appendEval_(ss, fields, id);
+    invalidateLists_();
     return { ok: true, id: id, scores: fields.scores };
   } catch (e) {
     logError_(ss, 'Помилка внесення оцінки', String(e.message || e), user, payload);
@@ -267,7 +286,7 @@ function api_submitEval(initDataRaw, payload) {
 function api_listMyEvals(initDataRaw) {
   try {
     verifyInitData_(initDataRaw);
-    return { ok: true, records: listOwnEvals_(getSpreadsheet_()) };
+    return { ok: true, records: cachedList_('list_evals', function () { return listOwnEvals_(getSpreadsheet_()); }) };
   } catch (e) {
     return { ok: false, error: String(e.message || e) };
   }
@@ -281,6 +300,7 @@ function api_updateEval(initDataRaw, id, payload) {
     validateEvalPayload_(payload);
     var fields = buildEvalFields_(payload);
     updateEval_(ss, id, fields);
+    invalidateLists_();
     return { ok: true, scores: fields.scores };
   } catch (e) {
     logError_(ss, 'Помилка редагування оцінки', String(e.message || e), user, payload);
@@ -294,6 +314,7 @@ function api_deleteEval(initDataRaw, id) {
   try {
     user = verifyInitData_(initDataRaw);
     deleteEval_(ss, id);
+    invalidateLists_();
     return { ok: true };
   } catch (e) {
     logError_(ss, 'Помилка видалення оцінки', String(e.message || e), user, { id: id });
