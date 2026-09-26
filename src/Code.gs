@@ -28,6 +28,12 @@ function doPost(e) {
   var result;
   try {
     var body = JSON.parse(e.postData.contents);
+
+    if (body.update_id !== undefined) {
+      handleTelegramUpdate_(body);
+      return ContentService.createTextOutput('ok');
+    }
+
     var fn = RPC_METHODS[body.fn];
     if (!fn) throw new Error('Невідомий метод: ' + body.fn);
     result = fn.apply(null, body.args || []);

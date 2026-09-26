@@ -25,5 +25,7 @@ var CONFIG = {
   EVAL_FIRST_DATA_ROW: 2,
 
   RECORD_ID_PREFIX: 'app:',
-  TIMEZONE: 'Europe/Kyiv'
+  TIMEZONE: 'Europe/Kyiv',
+
+  MINI_APP_URL: 'https://prizns2.github.io/priz-violations-kharkiv/'
 };
