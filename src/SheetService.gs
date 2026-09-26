@@ -112,7 +112,11 @@ function sortSheet_(sheet) {
   ]);
 }
 
-/** Пишет A-E, F-H и (для кат.1) I-K. L, M, N бот не трогает — как старый бот. */
+/**
+ * Пишет A-E, F-H і (для кат.1) I-L. M, N бот не трогает — як старий бот.
+ * K — відшкодовано покупцю (магазин повернув гроші за обсчет),
+ * L — відшкодовано магазину (покупець доплатив і закрив недостачу).
+ */
 function writeRowFields_(sheet, row, fields, category) {
   sheet.getRange(row, 1, 1, 5).setValues([[
     CONFIG.REGION, fields.date, CONFIG.OPERATOR_NAME, fields.storeName, fields.manager
@@ -124,10 +128,11 @@ function writeRowFields_(sheet, row, fields, category) {
   ]]);
 
   if (category === 1) {
-    sheet.getRange(row, 9, 1, 3).setValues([[
+    sheet.getRange(row, 9, 1, 4).setValues([[
       numOrBlank_(fields.customerDamage),
       numOrBlank_(fields.storeDamage),
-      numOrBlank_(fields.reimbursed)
+      numOrBlank_(fields.reimbursedCustomer),
+      numOrBlank_(fields.reimbursedStore)
     ]]);
   }
 }
@@ -192,10 +197,15 @@ function appendRecordsBatch_(ss, category, records) {
   sheet.getRange(startRow, 6, records.length, 3).setValues(valuesFH);
 
   if (category === 1) {
-    var valuesIJK = records.map(function (r) {
-      return [numOrBlank_(r.fields.customerDamage), numOrBlank_(r.fields.storeDamage), numOrBlank_(r.fields.reimbursed)];
+    var valuesIJKL = records.map(function (r) {
+      return [
+        numOrBlank_(r.fields.customerDamage),
+        numOrBlank_(r.fields.storeDamage),
+        numOrBlank_(r.fields.reimbursedCustomer),
+        numOrBlank_(r.fields.reimbursedStore)
+      ];
     });
-    sheet.getRange(startRow, 9, records.length, 3).setValues(valuesIJK);
+    sheet.getRange(startRow, 9, records.length, 4).setValues(valuesIJKL);
   }
 
   var serviceValues = records.map(function (r) {
@@ -259,7 +269,8 @@ function listOwnRecords_(ss) {
         fabula: values[i][7],
         customerDamage: category === 1 ? values[i][8] : '',
         storeDamage: category === 1 ? values[i][9] : '',
-        reimbursed: category === 1 ? values[i][10] : ''
+        reimbursedCustomer: category === 1 ? values[i][10] : '',
+        reimbursedStore: category === 1 ? values[i][11] : ''
       });
     }
   });

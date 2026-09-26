@@ -136,7 +136,12 @@ function detectViolation_(fabula) {
   return { category: hits[0].category, violation: hits[0].violation, alternatives: hits.slice(1, 3) };
 }
 
-/** Суммы шкоди из фабулы */
+/**
+ * Суммы шкоди из фабули.
+ * Два різних відшкодування — не плутати:
+ * - reimbursedCustomer: магазин повернув гроші обрахованому покупцю (K);
+ * - reimbursedStore: покупець доплатив і закрив недостачу магазину (L).
+ */
 function extractDamage_(fabula) {
   var t = norm_(fabula);
   var money = '(\\d[\\d ]*(?:[.,]\\d{1,2})?)\\s*грн';
@@ -144,11 +149,15 @@ function extractDamage_(fabula) {
   var mStore = t.match(new RegExp('недостача в магазине(?: на сумму)?\\s*[:=—–-]?\\s*' + money));
   var customer = mCust ? num_(mCust[1]) : null;
   var store = mStore ? num_(mStore[1]) : null;
-  var returned = /сумм\S* обсчет\S* вернул/.test(t) || /покупател\S* (за товар )?доплатил/.test(t);
+
+  var customerReturned = /сумм\S* обсчет\S* вернул/.test(t);
+  var storeReturned = /покупател\S* (за товар )?доплатил/.test(t);
+
   return {
     customerDamage: customer,
     storeDamage: store,
-    reimbursed: returned ? (customer !== null ? customer : store) : null
+    reimbursedCustomer: customerReturned ? customer : null,
+    reimbursedStore: storeReturned ? store : null
   };
 }
 
@@ -162,7 +171,7 @@ function parseViolationText(raw) {
   var res = {
     ttNumber: '', employeeName: '', date: '', fabula: '',
     category: null, violation: '', alternatives: [], typeSource: '',
-    customerDamage: null, storeDamage: null, reimbursed: null,
+    customerDamage: null, storeDamage: null, reimbursedCustomer: null, reimbursedStore: null,
     warnings: []
   };
   if (!text) { res.warnings.push('empty'); return res; }
@@ -212,7 +221,8 @@ function parseViolationText(raw) {
   // 5. Шкода (только для 1 категории)
   var d = extractDamage_(body);
   if (res.category === 1) {
-    res.customerDamage = d.customerDamage; res.storeDamage = d.storeDamage; res.reimbursed = d.reimbursed;
+    res.customerDamage = d.customerDamage; res.storeDamage = d.storeDamage;
+    res.reimbursedCustomer = d.reimbursedCustomer; res.reimbursedStore = d.reimbursedStore;
   }
   return res;
 }

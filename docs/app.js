@@ -70,7 +70,8 @@
     damageBlock: document.getElementById('damage-block'),
     damageCustomer: document.getElementById('damage-customer'),
     damageStore: document.getElementById('damage-store'),
-    damageReimbursed: document.getElementById('damage-reimbursed'),
+    damageReimbursedCustomer: document.getElementById('damage-reimbursed-customer'),
+    damageReimbursedStore: document.getElementById('damage-reimbursed-store'),
     submitBtn: document.getElementById('submit-btn'),
     cancelEditBtn: document.getElementById('cancel-edit-btn'),
     recordsContainer: document.getElementById('records-container'),
@@ -261,7 +262,8 @@
 
     els.damageCustomer.value = res.customerDamage != null ? res.customerDamage : '';
     els.damageStore.value = res.storeDamage != null ? res.storeDamage : '';
-    els.damageReimbursed.value = res.reimbursed != null ? res.reimbursed : '';
+    els.damageReimbursedCustomer.value = res.reimbursedCustomer != null ? res.reimbursedCustomer : '';
+    els.damageReimbursedStore.value = res.reimbursedStore != null ? res.reimbursedStore : '';
     toggleDamageBlock();
   }
 
@@ -277,7 +279,8 @@
     els.violationSelect.value = '';
     els.damageCustomer.value = '';
     els.damageStore.value = '';
-    els.damageReimbursed.value = '';
+    els.damageReimbursedCustomer.value = '';
+    els.damageReimbursedStore.value = '';
     selectedStore = null;
     clearWarnings();
     toggleDamageBlock();
@@ -307,7 +310,8 @@
       fabula: els.fabulaInput.value.trim(),
       customerDamage: els.damageCustomer.value,
       storeDamage: els.damageStore.value,
-      reimbursed: els.damageReimbursed.value
+      reimbursedCustomer: els.damageReimbursedCustomer.value,
+      reimbursedStore: els.damageReimbursedStore.value
     };
   }
 
@@ -486,7 +490,8 @@
     setViolation(r.category, r.violation);
     els.damageCustomer.value = r.customerDamage || '';
     els.damageStore.value = r.storeDamage || '';
-    els.damageReimbursed.value = r.reimbursed || '';
+    els.damageReimbursedCustomer.value = r.reimbursedCustomer || '';
+    els.damageReimbursedStore.value = r.reimbursedStore || '';
 
     els.submitBtn.textContent = 'Зберегти';
     els.cancelEditBtn.classList.remove('hidden');

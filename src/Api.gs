@@ -61,7 +61,8 @@ function api_parseText(initDataRaw, text) {
       alternatives: parsed.alternatives,
       customerDamage: parsed.customerDamage,
       storeDamage: parsed.storeDamage,
-      reimbursed: parsed.reimbursed,
+      reimbursedCustomer: parsed.reimbursedCustomer,
+      reimbursedStore: parsed.reimbursedStore,
       warnings: parsed.warnings
     };
   } catch (e) {
@@ -93,7 +94,8 @@ function api_parseBulk(initDataRaw, text) {
         alternatives: parsed.alternatives,
         customerDamage: parsed.customerDamage,
         storeDamage: parsed.storeDamage,
-        reimbursed: parsed.reimbursed,
+        reimbursedCustomer: parsed.reimbursedCustomer,
+        reimbursedStore: parsed.reimbursedStore,
         warnings: parsed.warnings,
         clean: parsed.warnings.length === 0 && !!store
       };
@@ -159,7 +161,8 @@ function buildFields_(payload) {
     fabula: payload.fabula,
     customerDamage: payload.customerDamage !== undefined && payload.customerDamage !== '' ? Number(payload.customerDamage) : null,
     storeDamage: payload.storeDamage !== undefined && payload.storeDamage !== '' ? Number(payload.storeDamage) : null,
-    reimbursed: payload.reimbursed !== undefined && payload.reimbursed !== '' ? Number(payload.reimbursed) : null
+    reimbursedCustomer: payload.reimbursedCustomer !== undefined && payload.reimbursedCustomer !== '' ? Number(payload.reimbursedCustomer) : null,
+    reimbursedStore: payload.reimbursedStore !== undefined && payload.reimbursedStore !== '' ? Number(payload.reimbursedStore) : null
   };
 }
 
