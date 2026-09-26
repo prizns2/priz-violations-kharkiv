@@ -11,16 +11,18 @@
   }
 
   /* Пока идёт любой запрос — сверху бежит полоска загрузки. */
-  function callApi(fn, args) {
-    pendingCalls++;
-    document.body.classList.add('busy');
+  function callApi(fn, args, silent) {
+    if (!silent) {
+      pendingCalls++;
+      document.body.classList.add('busy');
+    }
     return fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ fn: fn, args: args })
     }).then(function (r) { return r.json(); }).then(
-      function (v) { callDone(); return v; },
-      function (e) { callDone(); throw e; }
+      function (v) { if (!silent) callDone(); return v; },
+      function (e) { if (!silent) callDone(); throw e; }
     );
   }
 
@@ -497,7 +499,7 @@
     if (cached) renderRecords(cached);
     else els.recordsContainer.innerHTML = '<div class="empty-hint"><span class="spinner"></span> Загрузка…</div>';
 
-    callApi('listMine', [initData])
+    callApi('listMine', [initData], true)
       .then(function (res) {
         if (!res.ok) { if (!cached) els.recordsContainer.innerHTML = '<div class="empty-hint">' + res.error + '</div>'; return; }
         cacheSet_('recs', res.records);
@@ -702,7 +704,7 @@
     if (cached) renderEvalRecords(cached);
     else els.evalRecordsContainer.innerHTML = '<div class="empty-hint"><span class="spinner"></span> Загрузка…</div>';
 
-    callApi('listMyEvals', [initData])
+    callApi('listMyEvals', [initData], true)
       .then(function (res) {
         if (!res.ok) { if (!cached) els.evalRecordsContainer.innerHTML = '<div class="empty-hint">' + res.error + '</div>'; return; }
         cacheSet_('evals', res.records);
