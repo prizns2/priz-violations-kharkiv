@@ -140,17 +140,17 @@ function api_submitBulk(initDataRaw, items) {
 }
 
 function validatePayload_(payload) {
-  if (!payload || !payload.storeCode) throw new Error('Не вказано ТТ');
-  if (!payload.employeeName) throw new Error('Не вказано ПІБ співробітника');
-  if (payload.category !== 1 && payload.category !== 2) throw new Error('Не вказана категорія порушення');
-  if (!payload.violation) throw new Error('Не вказаний тип порушення');
-  if (!payload.fabula) throw new Error('Не вказана фабула');
+  if (!payload || !payload.storeCode) throw new Error('Не указана ТТ');
+  if (!payload.employeeName) throw new Error('Не указано ФИО сотрудника');
+  if (payload.category !== 1 && payload.category !== 2) throw new Error('Не указана категория нарушения');
+  if (!payload.violation) throw new Error('Не указан тип нарушения');
+  if (!payload.fabula) throw new Error('Не указана фабула');
 }
 
 function buildFields_(payload) {
   var storeMap = getStoreMap_(getSpreadsheet_());
   var store = storeMap[payload.storeCode];
-  if (!store) throw new Error('ТТ ' + payload.storeCode + ' не знайдена у довіднику «Пример»');
+  if (!store) throw new Error('ТТ ' + payload.storeCode + ' не найдена в справочнике «Пример»');
 
   return {
     date: todayKyiv_(),
@@ -243,15 +243,15 @@ function api_deleteRecord(initDataRaw, id) {
  ****************************************************************/
 
 function validateEvalPayload_(payload) {
-  if (!payload || !payload.storeCode) throw new Error('Не вказано ТТ');
-  if (!payload.seller) throw new Error('Не вказано продавця');
-  if (!payload.comment) throw new Error('Не вказано коментар');
+  if (!payload || !payload.storeCode) throw new Error('Не указана ТТ');
+  if (!payload.seller) throw new Error('Не указан продавец');
+  if (!payload.comment) throw new Error('Не указан комментарий');
 }
 
 function buildEvalFields_(payload) {
   var storeMap = getStoreMap_(getSpreadsheet_());
   var store = storeMap[payload.storeCode];
-  if (!store) throw new Error('ТТ ' + payload.storeCode + ' не знайдена у довіднику «Пример»');
+  if (!store) throw new Error('ТТ ' + payload.storeCode + ' не найдена в справочнике «Пример»');
 
   return {
     date: todayKyiv_(),

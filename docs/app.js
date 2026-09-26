@@ -3,12 +3,39 @@
 
   var API_URL = 'https://script.google.com/macros/s/AKfycbzv-tzr18zzcxzixppgyDm26FbR4rIE4cffIEFp8HgtoeDfaf2Wqwcmej1J_-s3au8_zg/exec';
 
+  var pendingCalls = 0;
+
+  function callDone() {
+    pendingCalls--;
+    if (!pendingCalls) document.body.classList.remove('busy');
+  }
+
+  /* Пока идёт любой запрос — сверху бежит полоска загрузки. */
   function callApi(fn, args) {
+    pendingCalls++;
+    document.body.classList.add('busy');
     return fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ fn: fn, args: args })
-    }).then(function (r) { return r.json(); });
+    }).then(function (r) { return r.json(); }).then(
+      function (v) { callDone(); return v; },
+      function (e) { callDone(); throw e; }
+    );
+  }
+
+  /* Кнопка на время запроса: крутилка, другой текст, блокировка. */
+  function setLoading(btn, loadingText, on) {
+    if (on) {
+      btn.dataset.label = btn.textContent;
+      btn.textContent = loadingText;
+      btn.disabled = true;
+      btn.classList.add('loading');
+    } else {
+      btn.textContent = btn.dataset.label || btn.textContent;
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
   }
 
   var tg = window.Telegram && window.Telegram.WebApp;
@@ -21,13 +48,13 @@
 
   (function setGreeting() {
     var h = new Date().getHours();
-    var text = h < 6 ? 'Доброї ночі' : h < 12 ? 'Доброго ранку' : h < 18 ? 'Доброго дня' : 'Доброго вечора';
+    var text = h < 6 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
     var el = document.getElementById('greeting-text');
     if (el) el.textContent = text;
   })();
 
   function debugInfo_() {
-    if (!tg) return 'window.Telegram.WebApp відсутній (скрипт telegram-web-app.js не завантажився)';
+    if (!tg) return 'window.Telegram.WebApp отсутствует (скрипт telegram-web-app.js не загрузился)';
     return 'platform=' + tg.platform + ' version=' + tg.version +
       ' initData.length=' + (tg.initData || '').length +
       ' initDataUnsafe.user=' + JSON.stringify(tg.initDataUnsafe && tg.initDataUnsafe.user);
@@ -179,11 +206,11 @@
 
   function fillViolationSelect() {
     var html = '<option value="">— выберите —</option>';
-    html += '<optgroup label="1 категорія">';
+    html += '<optgroup label="1 категория">';
     state.category1.forEach(function (t) {
       html += '<option value="1|' + escapeHtml_(t) + '">' + escapeHtml_(t) + '</option>';
     });
-    html += '</optgroup><optgroup label="2 категорія">';
+    html += '</optgroup><optgroup label="2 категория">';
     state.category2.forEach(function (t) {
       html += '<option value="2|' + escapeHtml_(t) + '">' + escapeHtml_(t) + '</option>';
     });
@@ -220,12 +247,14 @@
     var text = els.rawText.value.trim();
     if (!text) return;
 
+    setLoading(els.parseBtn, 'Разбираю…', true);
     callApi('parseText', [initData, text])
       .then(function (res) {
         if (!res.ok) { showToast(res.error); return; }
         applyParsed(res);
       })
-      .catch(function (err) { showToast(String(err)); });
+      .catch(function (err) { showToast(String(err)); })
+      .then(function () { setLoading(els.parseBtn, '', false); });
   });
 
   els.rawText.addEventListener('input', function () {
@@ -308,17 +337,17 @@
 
   function buildPayload() {
     var val = els.violationSelect.value;
-    if (!val) { showToast('Оберіть тип порушення'); return null; }
+    if (!val) { showToast('Выберите тип нарушения'); return null; }
     var parts = val.split('|');
     var category = Number(parts[0]);
     var violation = parts.slice(1).join('|');
 
     var storeCode = selectedStore ? selectedStore.code : (els.storeInput.value.match(/^(\d{1,3})/) || [])[1];
-    if (!storeCode) { showToast('Оберіть ТТ зі списку'); return null; }
+    if (!storeCode) { showToast('Выберите ТТ из списка'); return null; }
     storeCode = String(storeCode).padStart(3, '0');
 
-    if (!els.employeeInput.value.trim()) { showToast('Вкажіть ПІБ співробітника'); return null; }
-    if (!els.fabulaInput.value.trim()) { showToast('Вкажіть фабулу'); return null; }
+    if (!els.employeeInput.value.trim()) { showToast('Укажите ФИО сотрудника'); return null; }
+    if (!els.fabulaInput.value.trim()) { showToast('Укажите фабулу'); return null; }
 
     return {
       storeCode: storeCode,
@@ -337,17 +366,17 @@
     var payload = buildPayload();
     if (!payload) return;
 
-    els.submitBtn.disabled = true;
+    setLoading(els.submitBtn, state.editingId ? 'Сохраняю…' : 'Записываю…', true);
 
     var onDone = function (res) {
-      els.submitBtn.disabled = false;
+      setLoading(els.submitBtn, '', false);
       if (!res.ok) { showToast(res.error); return; }
-      showToast(state.editingId ? 'Збережено' : 'Записано');
+      showToast(state.editingId ? 'Сохранено' : 'Записано');
       resetForm();
       loadRecords();
     };
     var onFail = function (err) {
-      els.submitBtn.disabled = false;
+      setLoading(els.submitBtn, '', false);
       showToast(String(err));
     };
 
@@ -385,17 +414,17 @@
           state.bulkItems[idx].include = e.target.checked;
         });
       } else {
-        var issue = !item.storeFound ? 'ТТ ' + (item.ttNumber || '?') + ' не знайдена у довіднику'
-          : (item.warnings || []).indexOf('violation') !== -1 ? 'Тип порушення не визначено однозначно'
-          : (item.warnings || []).indexOf('employeeName') !== -1 ? 'Не розпізнано ПІБ співробітника'
-          : 'Потрібна перевірка вручну';
+        var issue = !item.storeFound ? 'ТТ ' + (item.ttNumber || '?') + ' не найдена в справочнике'
+          : (item.warnings || []).indexOf('violation') !== -1 ? 'Тип нарушения определён неоднозначно'
+          : (item.warnings || []).indexOf('employeeName') !== -1 ? 'Не распознано ФИО сотрудника'
+          : 'Нужна проверка вручную';
 
         card.className = 'bulk-item problem';
         card.innerHTML =
           '<div class="body">' +
           '<div class="title">' + escapeHtml_(item.raw.slice(0, 60)) + (item.raw.length > 60 ? '…' : '') + '</div>' +
           '<div class="issue">⚠️ ' + issue + '</div>' +
-          '<button class="fix-btn">Виправити вручну</button>' +
+          '<button class="fix-btn">Исправить вручную</button>' +
           '</div>';
         card.querySelector('.fix-btn').addEventListener('click', function () {
           resetForm();
@@ -416,6 +445,7 @@
     var text = els.bulkText.value.trim();
     if (!text) return;
 
+    setLoading(els.bulkParseBtn, 'Разбираю…', true);
     callApi('parseBulk', [initData, text])
       .then(function (res) {
         if (!res.ok) { showToast(res.error); return; }
@@ -424,20 +454,21 @@
         });
         renderBulkResults();
       })
-      .catch(function (err) { showToast(String(err)); });
+      .catch(function (err) { showToast(String(err)); })
+      .then(function () { setLoading(els.bulkParseBtn, '', false); });
   });
 
   els.bulkSubmitBtn.addEventListener('click', function () {
     var payloads = state.bulkItems.filter(function (i) { return i.clean && i.include; });
     if (!payloads.length) return;
 
-    els.bulkSubmitBtn.disabled = true;
+    setLoading(els.bulkSubmitBtn, 'Вношу…', true);
     callApi('submitBulk', [initData, payloads])
       .then(function (res) {
-        els.bulkSubmitBtn.disabled = false;
+        setLoading(els.bulkSubmitBtn, '', false);
         if (!res.ok) { showToast(res.error); return; }
         var okCount = res.results.filter(function (r) { return r.ok; }).length;
-        showToast('Внесено ' + okCount + ' із ' + payloads.length);
+        showToast('Внесено ' + okCount + ' из ' + payloads.length);
 
         var submittedRaws = payloads.map(function (p) { return p.raw; });
         state.bulkItems = state.bulkItems.filter(function (i) { return submittedRaws.indexOf(i.raw) === -1; });
@@ -445,7 +476,7 @@
         renderBulkResults();
       })
       .catch(function (err) {
-        els.bulkSubmitBtn.disabled = false;
+        setLoading(els.bulkSubmitBtn, '', false);
         showToast(String(err));
       });
   });
@@ -464,7 +495,7 @@
   function loadRecords() {
     var cached = cacheGet_('recs');
     if (cached) renderRecords(cached);
-    else els.recordsContainer.innerHTML = '<div class="empty-hint">Завантаження…</div>';
+    else els.recordsContainer.innerHTML = '<div class="empty-hint"><span class="spinner"></span> Загрузка…</div>';
 
     callApi('listMine', [initData])
       .then(function (res) {
@@ -483,7 +514,7 @@
 
   function renderRecords(records) {
     if (!records || !records.length) {
-      els.recordsContainer.innerHTML = '<div class="empty-hint">Поки що немає записів</div>';
+      els.recordsContainer.innerHTML = '<div class="empty-hint">Пока нет записей</div>';
       return;
     }
 
@@ -492,12 +523,12 @@
       var card = document.createElement('div');
       card.className = 'record-card';
       card.innerHTML =
-        '<div class="top"><span>' + formatDate(r.date) + '</span><span>' + r.category + ' категорія</span></div>' +
+        '<div class="top"><span>' + formatDate(r.date) + '</span><span>' + r.category + ' категория</span></div>' +
         '<div class="title">' + escapeHtml_(r.storeName) + '</div>' +
         '<div class="fabula">' + escapeHtml_(r.violation) + ' — ' + escapeHtml_(r.employeeName) + '</div>' +
         '<div class="record-actions">' +
-        '<button class="edit">Редагувати</button>' +
-        '<button class="delete">Видалити</button>' +
+        '<button class="edit">Редактировать</button>' +
+        '<button class="delete">Удалить</button>' +
         '</div>';
 
       card.querySelector('.edit').addEventListener('click', function () { startEdit(r); });
@@ -525,7 +556,7 @@
     els.damageReimbursedCustomer.value = r.reimbursedCustomer || '';
     els.damageReimbursedStore.value = r.reimbursedStore || '';
 
-    els.submitBtn.textContent = 'Зберегти';
+    els.submitBtn.textContent = 'Сохранить';
     els.cancelEditBtn.classList.remove('hidden');
 
     switchTab('add');
@@ -536,15 +567,15 @@
       callApi('deleteRecord', [initData, r.id])
         .then(function (res) {
           if (!res.ok) { showToast(res.error); return; }
-          showToast('Видалено');
+          showToast('Удалено');
           loadRecords();
         })
         .catch(function (err) { showToast(String(err)); });
     };
 
     if (tg && tg.showConfirm) {
-      tg.showConfirm('Видалити цей запис?', function (ok) { if (ok) doDelete(); });
-    } else if (window.confirm('Видалити цей запис?')) {
+      tg.showConfirm('Удалить эту запись?', function (ok) { if (ok) doDelete(); });
+    } else if (window.confirm('Удалить эту запись?')) {
       doDelete();
     }
   }
@@ -617,18 +648,18 @@
     els.evalTimeInput.value = '';
     els.evalGenderSelect.value = 'м';
     els.evalCommentInput.value = '';
-    els.evalFormTitle.textContent = 'Оцінка обслуговування';
-    els.evalSubmitBtn.textContent = 'Внести оцінку';
+    els.evalFormTitle.textContent = 'Оценка обслуживания';
+    els.evalSubmitBtn.textContent = 'Внести оценку';
     els.evalCancelEditBtn.classList.add('hidden');
   }
 
   function buildEvalPayload() {
     var storeCode = selectedEvalStore ? selectedEvalStore.code : (els.evalStoreInput.value.match(/^(\d{1,3})/) || [])[1];
-    if (!storeCode) { showToast('Оберіть ТТ зі списку'); return null; }
+    if (!storeCode) { showToast('Выберите ТТ из списка'); return null; }
     storeCode = String(storeCode).padStart(3, '0');
 
-    if (!els.evalSellerInput.value.trim()) { showToast('Вкажіть продавця'); return null; }
-    if (!els.evalCommentInput.value.trim()) { showToast('Вкажіть коментар'); return null; }
+    if (!els.evalSellerInput.value.trim()) { showToast('Укажите продавца'); return null; }
+    if (!els.evalCommentInput.value.trim()) { showToast('Укажите комментарий'); return null; }
 
     return {
       storeCode: storeCode,
@@ -643,17 +674,17 @@
     var payload = buildEvalPayload();
     if (!payload) return;
 
-    els.evalSubmitBtn.disabled = true;
+    setLoading(els.evalSubmitBtn, state.evalEditingId ? 'Сохраняю…' : 'Вношу…', true);
 
     var onDone = function (res) {
-      els.evalSubmitBtn.disabled = false;
+      setLoading(els.evalSubmitBtn, '', false);
       if (!res.ok) { showToast(res.error); return; }
-      showToast(state.evalEditingId ? 'Оцінку збережено' : 'Оцінку внесено');
+      showToast(state.evalEditingId ? 'Оценка сохранена' : 'Оценка внесена');
       resetEvalForm();
       loadEvals();
     };
     var onFail = function (err) {
-      els.evalSubmitBtn.disabled = false;
+      setLoading(els.evalSubmitBtn, '', false);
       showToast(String(err));
     };
 
@@ -669,7 +700,7 @@
   function loadEvals() {
     var cached = cacheGet_('evals');
     if (cached) renderEvalRecords(cached);
-    else els.evalRecordsContainer.innerHTML = '<div class="empty-hint">Завантаження…</div>';
+    else els.evalRecordsContainer.innerHTML = '<div class="empty-hint"><span class="spinner"></span> Загрузка…</div>';
 
     callApi('listMyEvals', [initData])
       .then(function (res) {
@@ -684,7 +715,7 @@
 
   function renderEvalRecords(records) {
     if (!records || !records.length) {
-      els.evalRecordsContainer.innerHTML = '<div class="empty-hint">Поки що немає оцінок</div>';
+      els.evalRecordsContainer.innerHTML = '<div class="empty-hint">Пока нет оценок</div>';
       return;
     }
 
@@ -700,8 +731,8 @@
         '<div class="title">' + escapeHtml_(r.storeName) + '</div>' +
         '<div class="fabula">' + escapeHtml_(r.seller) + ' — ' + escapeHtml_(r.comment) + '</div>' +
         '<div class="record-actions">' +
-        '<button class="edit">Редагувати</button>' +
-        '<button class="delete">Видалити</button>' +
+        '<button class="edit">Редактировать</button>' +
+        '<button class="delete">Удалить</button>' +
         '</div>';
 
       card.querySelector('.edit').addEventListener('click', function () { startEditEval(r); });
@@ -726,8 +757,8 @@
     els.evalGenderSelect.value = r.gender || 'м';
     els.evalCommentInput.value = r.comment || '';
 
-    els.evalFormTitle.textContent = 'Редагування оцінки';
-    els.evalSubmitBtn.textContent = 'Зберегти';
+    els.evalFormTitle.textContent = 'Редактирование оценки';
+    els.evalSubmitBtn.textContent = 'Сохранить';
     els.evalCancelEditBtn.classList.remove('hidden');
   }
 
@@ -736,15 +767,15 @@
       callApi('deleteEval', [initData, r.id])
         .then(function (res) {
           if (!res.ok) { showToast(res.error); return; }
-          showToast('Видалено');
+          showToast('Удалено');
           loadEvals();
         })
         .catch(function (err) { showToast(String(err)); });
     };
 
     if (tg && tg.showConfirm) {
-      tg.showConfirm('Видалити цю оцінку?', function (ok) { if (ok) doDelete(); });
-    } else if (window.confirm('Видалити цю оцінку?')) {
+      tg.showConfirm('Удалить эту оценку?', function (ok) { if (ok) doDelete(); });
+    } else if (window.confirm('Удалить эту оценку?')) {
       doDelete();
     }
   }

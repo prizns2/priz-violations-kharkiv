@@ -35,7 +35,7 @@ function doPost(e) {
     }
 
     var fn = RPC_METHODS[body.fn];
-    if (!fn) throw new Error('Невідомий метод: ' + body.fn);
+    if (!fn) throw new Error('Неизвестный метод: ' + body.fn);
     result = fn.apply(null, body.args || []);
   } catch (err) {
     result = { ok: false, error: String(err.message || err) };

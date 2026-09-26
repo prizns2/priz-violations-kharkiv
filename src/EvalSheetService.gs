@@ -7,7 +7,7 @@
 
 function getEvalSheet_(ss) {
   var sheet = ss.getSheetByName(CONFIG.SHEET_EVAL);
-  if (!sheet) throw new Error('Не знайдений лист «' + CONFIG.SHEET_EVAL + '»');
+  if (!sheet) throw new Error('Не найден лист «' + CONFIG.SHEET_EVAL + '»');
 
   if (sheet.getMaxColumns() < CONFIG.EVAL_ID_COLUMN) {
     sheet.insertColumnsAfter(sheet.getMaxColumns(), CONFIG.EVAL_ID_COLUMN - sheet.getMaxColumns());
@@ -91,14 +91,14 @@ function appendEval_(ss, fields, id) {
 function updateEval_(ss, id, fields) {
   var sheet = getEvalSheet_(ss);
   var row = findEvalRowById_(sheet, id);
-  if (row < 0) throw new Error('Оцінку не знайдено');
+  if (row < 0) throw new Error('Оценка не найдена');
   writeEvalRow_(sheet, row, fields);
 }
 
 function deleteEval_(ss, id) {
   var sheet = getEvalSheet_(ss);
   var row = findEvalRowById_(sheet, id);
-  if (row < 0) throw new Error('Оцінку не знайдено');
+  if (row < 0) throw new Error('Оценка не найдена');
   sheet.deleteRow(row);
 }
 

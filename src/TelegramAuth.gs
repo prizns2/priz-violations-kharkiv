@@ -5,13 +5,13 @@
 
 function getBotToken_() {
   var token = PropertiesService.getScriptProperties().getProperty('BOT_TOKEN');
-  if (!token) throw new Error('BOT_TOKEN не заданий у Script Properties');
+  if (!token) throw new Error('BOT_TOKEN не задан в Script Properties');
   return token;
 }
 
 function getOwnerTelegramId_() {
   var id = PropertiesService.getScriptProperties().getProperty('OWNER_TELEGRAM_ID');
-  if (!id) throw new Error('OWNER_TELEGRAM_ID не заданий у Script Properties');
+  if (!id) throw new Error('OWNER_TELEGRAM_ID не задан в Script Properties');
   return String(id);
 }
 
@@ -26,7 +26,7 @@ function bytesToHex_(bytes) {
  * Повертає об'єкт user з Telegram при успіху, інакше кидає Error.
  */
 function verifyInitData_(initData) {
-  if (!initData) throw new Error('Немає initData');
+  if (!initData) throw new Error('Нет initData');
 
   var pairs = initData.split('&');
   var hash = '';
@@ -63,11 +63,11 @@ function verifyInitData_(initData) {
   );
 
   if (computedHash !== hash) {
-    throw new Error('Недійсний підпис Telegram initData');
+    throw new Error('Недействительная подпись Telegram initData');
   }
 
   if (!user || String(user.id) !== getOwnerTelegramId_()) {
-    throw new Error('Доступ заборонено: не власник');
+    throw new Error('Доступ запрещён: вы не владелец');
   }
 
   return user;

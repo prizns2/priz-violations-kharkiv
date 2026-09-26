@@ -11,13 +11,13 @@ function getSpreadsheet_() {
 function getCategorySheet_(ss, category) {
   var name = category === 1 ? CONFIG.SHEET_CATEGORY_1 : CONFIG.SHEET_CATEGORY_2;
   var sheet = ss.getSheetByName(name);
-  if (!sheet) throw new Error('Не знайдений лист «' + name + '»');
+  if (!sheet) throw new Error('Не найден лист «' + name + '»');
   return sheet;
 }
 
 function getStoreMap_(ss) {
   var sheet = ss.getSheetByName(CONFIG.STORE_REFERENCE_SHEET);
-  if (!sheet) throw new Error('Не знайдений лист «' + CONFIG.STORE_REFERENCE_SHEET + '»');
+  if (!sheet) throw new Error('Не найден лист «' + CONFIG.STORE_REFERENCE_SHEET + '»');
   var lastRow = sheet.getLastRow();
   if (lastRow < CONFIG.STORE_REFERENCE_FIRST_ROW) return {};
 
@@ -218,7 +218,7 @@ function appendRecordsBatch_(ss, category, records) {
 
 function updateRecord_(ss, id, fields) {
   var found = findRecordAnyCategory_(ss, id);
-  if (!found) throw new Error('Запис не знайдено');
+  if (!found) throw new Error('Запись не найдена');
 
   if (found.category !== fields.category) {
     found.sheet.deleteRow(found.row);
@@ -233,7 +233,7 @@ function updateRecord_(ss, id, fields) {
 
 function deleteRecord_(ss, id) {
   var found = findRecordAnyCategory_(ss, id);
-  if (!found) throw new Error('Запис не знайдено');
+  if (!found) throw new Error('Запись не найдена');
   found.sheet.deleteRow(found.row);
 }
 
