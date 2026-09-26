@@ -1,8 +1,7 @@
 /****************************************************************
  * TELEGRAM-БОТ: відповідь на /start з кнопкою відкриття Mini App
- * Telegram шле оновлення webhook-ом на /exec (див. doPost у Code.gs).
- * Apps Script у відповідь віддає 302, тому Telegram може повторити
- * доставку — захист від дублів через update_id у CacheService.
+ * Оновлення забираємо опитуванням (pollTelegram, тригер щохвилини).
+ * Захист від дублів через update_id у CacheService — про всяк випадок.
  ****************************************************************/
 
 function tgCall_(method, payload) {
@@ -47,7 +46,48 @@ function handleTelegramUpdate_(update) {
   }
 }
 
-/** Запустити один раз вручну з редактора Apps Script — щоб надати дозвіл на UrlFetchApp. */
-function authorizeBot() {
-  Logger.log(JSON.stringify(tgCall_('getMe')));
+/**
+ * Опитування getUpdates раз на хвилину замість webhook: Apps Script відповідає на POST
+ * редиректом 302, Telegram вважає це помилкою й застрягає на повторах доставки.
+ */
+function pollTelegram() {
+  var props = PropertiesService.getScriptProperties();
+  var offset = Number(props.getProperty('TG_OFFSET') || 0);
+
+  var res = tgCall_('getUpdates', {
+    offset: offset,
+    timeout: 0,
+    limit: 50,
+    allowed_updates: ['message']
+  });
+  if (!res.ok || !res.result.length) return;
+
+  res.result.forEach(function (update) {
+    try {
+      handleTelegramUpdate_(update);
+    } catch (e) {
+      logError_(getSpreadsheet_(), 'Помилка обробки повідомлення бота', String(e.message || e), null, { update_id: update.update_id });
+    }
+    offset = update.update_id + 1;
+  });
+
+  props.setProperty('TG_OFFSET', String(offset));
+}
+
+/** Запустити один раз вручну з редактора: дозволи, вимкнення webhook, тригер щохвилини. */
+function startBotPolling() {
+  tgCall_('deleteWebhook', { drop_pending_updates: true });
+
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'pollTelegram') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('pollTelegram').timeBased().everyMinutes(1).create();
+
+  Logger.log('Опитування Telegram запущено');
+}
+
+function stopBotPolling() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'pollTelegram') ScriptApp.deleteTrigger(t);
+  });
 }

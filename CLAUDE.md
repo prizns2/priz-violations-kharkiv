@@ -93,13 +93,13 @@ index.html со старым закэшированным app.js (было: `Typ
   (source: branch `master`, path `/docs`).
 - Кнопка меню бота (`setChatMenuButton`, type `web_app`) указывает на GitHub Pages URL, НЕ на
   Apps Script `/exec` URL.
-- Ответ на `/start` (`src/Bot.gs`): Telegram webhook (`setWebhook`) указывает на тот же Apps Script `/exec`;
-  `doPost` отличает Telegram-апдейт по полю `update_id` от RPC-вызова фронтенда (`fn`). Бот шлёт сообщение с
+- Ответ на `/start` (`src/Bot.gs`): бот **опрашивает getUpdates раз в минуту** (`pollTelegram`, time-триггер,
+  включается разовым запуском `startBotPolling` из редактора Apps Script; webhook отключён). Шлёт сообщение с
   inline-кнопкой «Открыть» (web_app) и закрепляет его; чужим отвечает «Это личный бот. Доступ закрыт.»
-  `UrlFetchApp` требует отдельного разрешения: после добавления новых scope сначала `clasp push` БЕЗ деплоя,
-  владелец один раз запускает `authorizeBot` в редакторе, и только потом `clasp deploy` (иначе рабочее
-  приложение может отвалиться на экране авторизации).
-- Известная особенность: Apps Script отвечает на POST редиректом 302, Telegram считает это ошибкой
-  (`getWebhookInfo` → «Wrong response from the webhook: 302») и повторяет доставку; дубли отсекаются по
-  `update_id` в CacheService. Если `/start` перестанет отвечать — проверить `getWebhookInfo` (очередь
-  `pending_update_count`) и при необходимости `setWebhook` с `drop_pending_updates=true`.
+  Webhook не годится: Apps Script отвечает на POST редиректом 302, Telegram считает это ошибкой, повторяет доставку
+  и застревает на очереди (проверено: `pending_update_count` копился, `/start` перестал отвечать).
+- Новые OAuth-scope (`UrlFetchApp`, триггеры): сначала `clasp push` БЕЗ деплоя, владелец один раз запускает нужную
+  функцию в редакторе (даёт разрешение), и только потом `clasp deploy` — иначе рабочее приложение может
+  отвалиться на экране авторизации.
+
+
