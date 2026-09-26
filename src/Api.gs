@@ -69,6 +69,73 @@ function api_parseText(initDataRaw, text) {
   }
 }
 
+/** Розбиває текст на кілька нарушень за порожнім рядком і розбирає кожне окремо. */
+function api_parseBulk(initDataRaw, text) {
+  try {
+    verifyInitData_(initDataRaw);
+    var storeMap = getStoreMap_(getSpreadsheet_());
+    var chunks = String(text || '').split(/\n\s*\n+/).map(function (s) { return s.trim(); }).filter(Boolean);
+
+    var items = chunks.map(function (chunk) {
+      var parsed = parseViolationText(chunk);
+      var store = parsed.ttNumber ? storeMap[parsed.ttNumber] : null;
+      return {
+        raw: chunk,
+        ttNumber: parsed.ttNumber,
+        storeCode: store ? store.code : '',
+        storeName: store ? store.name : '',
+        manager: store ? store.manager : '',
+        storeFound: !!store,
+        employeeName: parsed.employeeName,
+        fabula: parsed.fabula,
+        category: parsed.category,
+        violation: parsed.violation,
+        alternatives: parsed.alternatives,
+        customerDamage: parsed.customerDamage,
+        storeDamage: parsed.storeDamage,
+        reimbursed: parsed.reimbursed,
+        warnings: parsed.warnings,
+        clean: parsed.warnings.length === 0 && !!store
+      };
+    });
+
+    return { ok: true, items: items };
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+/** Пакетний запис — тільки записи без попереджень власник підтверджує одним натисканням. */
+function api_submitBulk(initDataRaw, items) {
+  var ss = getSpreadsheet_();
+  var user = null;
+  try {
+    user = verifyInitData_(initDataRaw);
+    var byCategory = { 1: [], 2: [] };
+    var results = [];
+
+    (items || []).forEach(function (item, idx) {
+      try {
+        validatePayload_(item);
+        var fields = buildFields_(item);
+        var id = generateRecordId_();
+        byCategory[item.category].push({ fields: fields, id: id });
+        results.push({ index: idx, ok: true, id: id });
+      } catch (e) {
+        results.push({ index: idx, ok: false, error: String(e.message || e) });
+      }
+    });
+
+    if (byCategory[1].length) appendRecordsBatch_(ss, 1, byCategory[1]);
+    if (byCategory[2].length) appendRecordsBatch_(ss, 2, byCategory[2]);
+
+    return { ok: true, results: results };
+  } catch (e) {
+    logError_(ss, 'Помилка масового внесення', String(e.message || e), user, { count: (items || []).length });
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
 function validatePayload_(payload) {
   if (!payload || !payload.storeCode) throw new Error('Не вказано ТТ');
   if (!payload.employeeName) throw new Error('Не вказано ПІБ співробітника');

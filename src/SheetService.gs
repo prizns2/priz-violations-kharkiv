@@ -151,6 +151,61 @@ function appendRecord_(ss, category, fields, id) {
   sortSheet_(sheet);
 }
 
+/**
+ * Пакетна вставка кількох записів однієї категорії за один прохід:
+ * один clearContent/copyTo на весь діапазон, один setValues на колонку,
+ * одне сортування в кінці — як appendRecordsBatch_ у старому боте.
+ * records: [{ fields, id }]
+ */
+function appendRecordsBatch_(ss, category, records) {
+  if (!records || !records.length) return;
+
+  var sheet = getCategorySheet_(ss, category);
+  var lastDataRow = Math.max(sheet.getLastRow(), CONFIG.FIRST_DATA_ROW - 1);
+  var startRow = lastDataRow + 1;
+  var requiredLastRow = startRow + records.length - 1;
+
+  ensureSheetHasRow_(sheet, requiredLastRow);
+
+  var templateRow = lastDataRow >= CONFIG.FIRST_DATA_ROW ? lastDataRow : CONFIG.FIRST_DATA_ROW;
+  var lastColumn = Math.max(sheet.getLastColumn(), CONFIG.STORE_SORT_COLUMN);
+
+  var targetRange = sheet.getRange(startRow, 1, records.length, lastColumn);
+  targetRange.clearContent();
+
+  var sourceRange = sheet.getRange(templateRow, 1, 1, lastColumn);
+  sourceRange.copyTo(targetRange, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+  sourceRange.copyTo(targetRange, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
+
+  var rowHeight = sheet.getRowHeight(templateRow);
+  for (var i = 0; i < records.length; i++) sheet.setRowHeight(startRow + i, rowHeight);
+
+  var valuesAE = records.map(function (r) {
+    return [CONFIG.REGION, r.fields.date, CONFIG.OPERATOR_NAME, r.fields.storeName, r.fields.manager];
+  });
+  sheet.getRange(startRow, 1, records.length, 5).setValues(valuesAE);
+  sheet.getRange(startRow, 2, records.length, 1).setNumberFormat('dd.MM.yyyy');
+
+  var valuesFH = records.map(function (r) {
+    return [r.fields.violation, r.fields.employeeName, r.fields.fabula];
+  });
+  sheet.getRange(startRow, 6, records.length, 3).setValues(valuesFH);
+
+  if (category === 1) {
+    var valuesIJK = records.map(function (r) {
+      return [numOrBlank_(r.fields.customerDamage), numOrBlank_(r.fields.storeDamage), numOrBlank_(r.fields.reimbursed)];
+    });
+    sheet.getRange(startRow, 9, records.length, 3).setValues(valuesIJK);
+  }
+
+  var serviceValues = records.map(function (r) {
+    return [r.id, Number(r.fields.storeCode)];
+  });
+  sheet.getRange(startRow, CONFIG.RECORD_ID_COLUMN, records.length, 2).setValues(serviceValues);
+
+  sortSheet_(sheet);
+}
+
 function updateRecord_(ss, id, fields) {
   var found = findRecordAnyCategory_(ss, id);
   if (!found) throw new Error('Запис не знайдено');

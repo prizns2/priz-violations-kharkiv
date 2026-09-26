@@ -15,7 +15,9 @@ var RPC_METHODS = {
   submit: api_submit,
   listMine: api_listMine,
   updateRecord: api_updateRecord,
-  deleteRecord: api_deleteRecord
+  deleteRecord: api_deleteRecord,
+  parseBulk: api_parseBulk,
+  submitBulk: api_submitBulk
 };
 
 function doPost(e) {

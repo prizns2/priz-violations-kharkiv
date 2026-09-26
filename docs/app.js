@@ -37,15 +37,21 @@
     storeList: [],
     category1: [],
     category2: [],
-    editingId: null
+    editingId: null,
+    bulkItems: []
   };
 
   var els = {
     tabs: document.querySelectorAll('.tab-btn'),
     screens: {
       add: document.getElementById('screen-add'),
+      bulk: document.getElementById('screen-bulk'),
       list: document.getElementById('screen-list')
     },
+    bulkText: document.getElementById('bulk-text'),
+    bulkParseBtn: document.getElementById('bulk-parse-btn'),
+    bulkResults: document.getElementById('bulk-results'),
+    bulkSubmitBtn: document.getElementById('bulk-submit-btn'),
     rawText: document.getElementById('raw-text'),
     parseBtn: document.getElementById('parse-btn'),
     storeInput: document.getElementById('store-input'),
@@ -330,6 +336,96 @@
   });
 
   els.cancelEditBtn.addEventListener('click', resetForm);
+
+  /* ---------- масове внесення ---------- */
+
+  function renderBulkResults() {
+    if (!state.bulkItems.length) {
+      els.bulkResults.innerHTML = '';
+      els.bulkSubmitBtn.classList.add('hidden');
+      return;
+    }
+
+    els.bulkResults.innerHTML = '';
+    state.bulkItems.forEach(function (item, idx) {
+      var card = document.createElement('div');
+
+      if (item.clean) {
+        card.className = 'bulk-item';
+        card.innerHTML =
+          '<input type="checkbox" ' + (item.include ? 'checked' : '') + '>' +
+          '<div class="body">' +
+          '<div class="title">' + escapeHtml_(item.storeName) + '</div>' +
+          '<div class="sub">' + escapeHtml_(item.violation) + ' — ' + escapeHtml_(item.employeeName) + '</div>' +
+          '</div>';
+        card.querySelector('input').addEventListener('change', function (e) {
+          state.bulkItems[idx].include = e.target.checked;
+        });
+      } else {
+        var issue = !item.storeFound ? 'ТТ ' + (item.ttNumber || '?') + ' не знайдена у довіднику'
+          : (item.warnings || []).indexOf('violation') !== -1 ? 'Тип порушення не визначено однозначно'
+          : (item.warnings || []).indexOf('employeeName') !== -1 ? 'Не розпізнано ПІБ співробітника'
+          : 'Потрібна перевірка вручну';
+
+        card.className = 'bulk-item problem';
+        card.innerHTML =
+          '<div class="body">' +
+          '<div class="title">' + escapeHtml_(item.raw.slice(0, 60)) + (item.raw.length > 60 ? '…' : '') + '</div>' +
+          '<div class="issue">⚠️ ' + issue + '</div>' +
+          '<button class="fix-btn">Виправити вручну</button>' +
+          '</div>';
+        card.querySelector('.fix-btn').addEventListener('click', function () {
+          resetForm();
+          els.rawText.value = item.raw;
+          switchTab('add');
+          els.parseBtn.click();
+        });
+      }
+
+      els.bulkResults.appendChild(card);
+    });
+
+    var hasClean = state.bulkItems.some(function (i) { return i.clean; });
+    els.bulkSubmitBtn.classList.toggle('hidden', !hasClean);
+  }
+
+  els.bulkParseBtn.addEventListener('click', function () {
+    var text = els.bulkText.value.trim();
+    if (!text) return;
+
+    callApi('parseBulk', [initData, text])
+      .then(function (res) {
+        if (!res.ok) { showToast(res.error); return; }
+        state.bulkItems = res.items.map(function (item) {
+          return Object.assign({ include: item.clean }, item);
+        });
+        renderBulkResults();
+      })
+      .catch(function (err) { showToast(String(err)); });
+  });
+
+  els.bulkSubmitBtn.addEventListener('click', function () {
+    var payloads = state.bulkItems.filter(function (i) { return i.clean && i.include; });
+    if (!payloads.length) return;
+
+    els.bulkSubmitBtn.disabled = true;
+    callApi('submitBulk', [initData, payloads])
+      .then(function (res) {
+        els.bulkSubmitBtn.disabled = false;
+        if (!res.ok) { showToast(res.error); return; }
+        var okCount = res.results.filter(function (r) { return r.ok; }).length;
+        showToast('Внесено ' + okCount + ' із ' + payloads.length);
+
+        var submittedRaws = payloads.map(function (p) { return p.raw; });
+        state.bulkItems = state.bulkItems.filter(function (i) { return submittedRaws.indexOf(i.raw) === -1; });
+        els.bulkText.value = state.bulkItems.map(function (i) { return i.raw; }).join('\n\n');
+        renderBulkResults();
+      })
+      .catch(function (err) {
+        els.bulkSubmitBtn.disabled = false;
+        showToast(String(err));
+      });
+  });
 
   /* ---------- список записей ---------- */
 
