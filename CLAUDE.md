@@ -27,6 +27,11 @@ CORS-preflight, который Apps Script не умеет отвечать).
 за 1-2 минуты. При изменении `src/*.gs` — `clasp push`, затем передеплой существующего deployment
 (`clasp deploy --deploymentId <id>` ИЛИ через UI: Deploy → Manage deployments → ✏️ → New version → Deploy).
 
+**Важно:** GitHub Pages кэширует `styles.css`/`app.js` независимо друг от друга (`Cache-Control: max-age=600`).
+Если меняешь ID элементов или структуру, которые связывают HTML и JS/CSS, — обязательно поднимай
+`?v=N` у `<link>`/`<script>` в `docs/index.html`, иначе у пользователя может подгрузиться свежий
+index.html со старым закэшированным app.js (было: `TypeError: Cannot set properties of null`).
+
 ## Что уже сделано
 - `src/Parser.js` — разбор текста: ТТ, ПІБ, фабула, категория + тип (автоопределение
   по фабуле, 35 типов), суммы шкоди. Хвост «N категорія, тип» необязателен и имеет приоритет.
