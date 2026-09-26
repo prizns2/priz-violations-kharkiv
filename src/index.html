@@ -8,71 +8,86 @@
 <body>
   <div id="app">
 
+    <div class="header-card">
+      <div class="greeting" id="greeting-text">Добрий день</div>
+      <div class="greeting-name">PRIZ Харків</div>
+    </div>
+
     <div id="screen-add" class="screen active">
-      <h2>Внести нарушение</h2>
+      <div class="card">
+        <h2>Вставити текст</h2>
+        <textarea id="raw-text" placeholder="ТТ, ПІБ, дата… фабула…"></textarea>
+        <button class="secondary" id="parse-btn">Розібрати</button>
+      </div>
 
-      <label for="raw-text">Вставь текст</label>
-      <textarea id="raw-text" placeholder="ТТ, ПІБ, дата… фабула…"></textarea>
-      <button class="secondary" id="parse-btn">Разобрать</button>
-
-      <div class="field" id="field-store">
-        <label>ТТ</label>
-        <div class="combo">
-          <input type="text" id="store-input" placeholder="Начните вводить номер или название" autocomplete="off">
-          <div class="combo-list" id="store-list"></div>
+      <div class="card">
+        <div class="field" id="field-store">
+          <label>ТТ</label>
+          <div class="combo">
+            <input type="text" id="store-input" placeholder="Номер або назва" autocomplete="off">
+            <div class="combo-list" id="store-list"></div>
+          </div>
+          <div class="field-note hidden" id="store-note">ТТ не знайдена у довіднику</div>
         </div>
-        <div class="field-note hidden" id="store-note">ТТ не найдена в справочнике</div>
-      </div>
 
-      <label>Менеджер</label>
-      <input type="text" id="manager-input" disabled>
+        <label>Менеджер</label>
+        <input type="text" id="manager-input" disabled>
 
-      <div class="field" id="field-employee">
-        <label>ПІБ співробітника ТТ</label>
-        <input type="text" id="employee-input">
-      </div>
+        <div class="field" id="field-employee">
+          <label>ПІБ співробітника ТТ</label>
+          <input type="text" id="employee-input">
+        </div>
 
-      <div class="field" id="field-fabula">
-        <label>Фабула</label>
-        <textarea id="fabula-input"></textarea>
-      </div>
+        <div class="field" id="field-fabula">
+          <label>Фабула</label>
+          <textarea id="fabula-input"></textarea>
+        </div>
 
-      <div class="field" id="field-violation">
-        <label>Тип нарушения</label>
-        <select id="violation-select">
-          <option value="">— выберите —</option>
-        </select>
-        <div class="field-note hidden" id="violation-note">Тип определён автоматически, проверьте</div>
-        <div class="chips hidden" id="violation-chips"></div>
-      </div>
+        <div class="field" id="field-violation">
+          <label>Тип порушення</label>
+          <select id="violation-select">
+            <option value="">— оберіть —</option>
+          </select>
+          <div class="field-note hidden" id="violation-note">Тип визначено автоматично, перевірте</div>
+          <div class="chips hidden" id="violation-chips"></div>
+        </div>
 
-      <div id="damage-block" class="hidden">
-        <label>Шкода (только 1 категорія)</label>
-        <div class="damage-row">
-          <div class="field">
-            <input type="number" id="damage-customer" placeholder="Покупцю">
-          </div>
-          <div class="field">
-            <input type="number" id="damage-store" placeholder="Магазину">
-          </div>
-          <div class="field">
-            <input type="number" id="damage-reimbursed" placeholder="Відшкодовано">
+        <div id="damage-block" class="hidden">
+          <label>Шкода (тільки 1 категорія)</label>
+          <div class="damage-row">
+            <div class="field">
+              <input type="number" id="damage-customer" placeholder="Покупцю">
+            </div>
+            <div class="field">
+              <input type="number" id="damage-store" placeholder="Магазину">
+            </div>
+            <div class="field">
+              <input type="number" id="damage-reimbursed" placeholder="Відшкодовано">
+            </div>
           </div>
         </div>
-      </div>
 
-      <button class="primary" id="submit-btn">Внести</button>
-      <button class="secondary hidden" id="cancel-edit-btn">Скасувати редагування</button>
+        <button class="primary" id="submit-btn">Внести</button>
+        <button class="secondary hidden" id="cancel-edit-btn">Скасувати редагування</button>
+      </div>
     </div>
 
     <div id="screen-list" class="screen">
-      <h2>Останні записи</h2>
-      <div id="records-container"></div>
+      <div class="card">
+        <h2>Останні записи</h2>
+        <div id="records-container"></div>
+      </div>
     </div>
 
     <nav class="tabbar">
-      <button class="tab-btn active" data-screen="add">Внести</button>
-      <button class="tab-btn" data-screen="list">Останні</button>
+      <button class="tab-btn active" data-screen="add">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Внести</span>
+      </button>
+      <button class="tab-btn" data-screen="list">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <span>Останні</span>
+      </button>
     </nav>
   </div>
 

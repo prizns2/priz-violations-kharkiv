@@ -10,6 +10,20 @@
     tg.expand();
   }
 
+  (function setGreeting() {
+    var h = new Date().getHours();
+    var text = h < 6 ? 'Доброї ночі' : h < 12 ? 'Доброго ранку' : h < 18 ? 'Доброго дня' : 'Доброго вечора';
+    var el = document.getElementById('greeting-text');
+    if (el) el.textContent = text;
+  })();
+
+  function debugInfo_() {
+    if (!tg) return 'window.Telegram.WebApp відсутній (скрипт telegram-web-app.js не завантажився)';
+    return 'platform=' + tg.platform + ' version=' + tg.version +
+      ' initData.length=' + (tg.initData || '').length +
+      ' initDataUnsafe.user=' + JSON.stringify(tg.initDataUnsafe && tg.initDataUnsafe.user);
+  }
+
   var state = {
     storeList: [],
     category1: [],
@@ -404,7 +418,8 @@
   google.script.run
     .withSuccessHandler(function (res) {
       if (!res.ok) {
-        document.getElementById('app').innerHTML = '<div class="empty-hint">' + res.error + '</div>';
+        document.getElementById('app').innerHTML =
+          '<div class="empty-hint">' + res.error + '<br><br><small>' + debugInfo_() + '</small></div>';
         return;
       }
       state.storeList = res.storeList;
