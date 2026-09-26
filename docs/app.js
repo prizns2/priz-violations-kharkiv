@@ -38,7 +38,8 @@
     category1: [],
     category2: [],
     editingId: null,
-    bulkItems: []
+    bulkItems: [],
+    evalEditingId: null
   };
 
   var els = {
@@ -46,8 +47,20 @@
     screens: {
       add: document.getElementById('screen-add'),
       bulk: document.getElementById('screen-bulk'),
+      eval: document.getElementById('screen-eval'),
       list: document.getElementById('screen-list')
     },
+    evalStoreInput: document.getElementById('eval-store-input'),
+    evalStoreList: document.getElementById('eval-store-list'),
+    evalManagerInput: document.getElementById('eval-manager-input'),
+    evalSellerInput: document.getElementById('eval-seller-input'),
+    evalTimeInput: document.getElementById('eval-time-input'),
+    evalGenderSelect: document.getElementById('eval-gender-select'),
+    evalCommentInput: document.getElementById('eval-comment-input'),
+    evalSubmitBtn: document.getElementById('eval-submit-btn'),
+    evalCancelEditBtn: document.getElementById('eval-cancel-edit-btn'),
+    evalFormTitle: document.getElementById('eval-form-title'),
+    evalRecordsContainer: document.getElementById('eval-records-container'),
     bulkText: document.getElementById('bulk-text'),
     bulkParseBtn: document.getElementById('bulk-parse-btn'),
     bulkResults: document.getElementById('bulk-results'),
@@ -104,6 +117,7 @@
       els.screens[key].classList.toggle('active', key === name);
     });
     if (name === 'list') loadRecords();
+    if (name === 'eval') loadEvals();
   }
 
   els.tabs.forEach(function (btn) {
@@ -517,6 +531,202 @@
     if (tg && tg.showConfirm) {
       tg.showConfirm('Видалити цей запис?', function (ok) { if (ok) doDelete(); });
     } else if (window.confirm('Видалити цей запис?')) {
+      doDelete();
+    }
+  }
+
+  /* ---------- оцінка обслуговування ---------- */
+
+  var selectedEvalStore = null;
+
+  function renderEvalStoreList(query) {
+    var q = (query || '').trim().toLowerCase();
+    var matches = state.storeList.filter(function (s) {
+      return !q || s.code.indexOf(q) === 0 || s.name.toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 30);
+
+    els.evalStoreList.innerHTML = '';
+    matches.forEach(function (s) {
+      var item = document.createElement('div');
+      item.className = 'combo-item';
+      item.textContent = s.name;
+      item.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        selectEvalStore(s);
+      });
+      els.evalStoreList.appendChild(item);
+    });
+    els.evalStoreList.classList.toggle('open', matches.length > 0);
+  }
+
+  function selectEvalStore(store) {
+    selectedEvalStore = store;
+    els.evalStoreInput.value = store.name;
+    els.evalManagerInput.value = store.manager;
+    els.evalStoreList.classList.remove('open');
+  }
+
+  function selectEvalStoreByCode(code) {
+    var store = state.storeList.filter(function (s) { return s.code === code; })[0];
+    if (store) selectEvalStore(store);
+    return store;
+  }
+
+  els.evalStoreInput.addEventListener('input', function () {
+    selectedEvalStore = null;
+    els.evalManagerInput.value = '';
+    renderEvalStoreList(els.evalStoreInput.value);
+  });
+
+  els.evalStoreInput.addEventListener('focus', function () {
+    renderEvalStoreList(els.evalStoreInput.value);
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!els.evalStoreInput.contains(e.target) && !els.evalStoreList.contains(e.target)) {
+      els.evalStoreList.classList.remove('open');
+    }
+  });
+
+  /* маска часу: вводяться тільки цифри, автоматично додається ":" після другої */
+  els.evalTimeInput.addEventListener('input', function () {
+    var digits = els.evalTimeInput.value.replace(/\D/g, '').slice(0, 4);
+    els.evalTimeInput.value = digits.length > 2 ? digits.slice(0, 2) + ':' + digits.slice(2) : digits;
+  });
+
+  function resetEvalForm() {
+    state.evalEditingId = null;
+    selectedEvalStore = null;
+    els.evalStoreInput.value = '';
+    els.evalManagerInput.value = '';
+    els.evalSellerInput.value = '';
+    els.evalTimeInput.value = '';
+    els.evalGenderSelect.value = 'м';
+    els.evalCommentInput.value = '';
+    els.evalFormTitle.textContent = 'Оцінка обслуговування';
+    els.evalSubmitBtn.textContent = 'Внести оцінку';
+    els.evalCancelEditBtn.classList.add('hidden');
+  }
+
+  function buildEvalPayload() {
+    var storeCode = selectedEvalStore ? selectedEvalStore.code : (els.evalStoreInput.value.match(/^(\d{1,3})/) || [])[1];
+    if (!storeCode) { showToast('Оберіть ТТ зі списку'); return null; }
+    storeCode = String(storeCode).padStart(3, '0');
+
+    if (!els.evalSellerInput.value.trim()) { showToast('Вкажіть продавця'); return null; }
+    if (!els.evalCommentInput.value.trim()) { showToast('Вкажіть коментар'); return null; }
+
+    return {
+      storeCode: storeCode,
+      seller: els.evalSellerInput.value.trim(),
+      time: els.evalTimeInput.value.trim(),
+      gender: els.evalGenderSelect.value,
+      comment: els.evalCommentInput.value.trim()
+    };
+  }
+
+  els.evalSubmitBtn.addEventListener('click', function () {
+    var payload = buildEvalPayload();
+    if (!payload) return;
+
+    els.evalSubmitBtn.disabled = true;
+
+    var onDone = function (res) {
+      els.evalSubmitBtn.disabled = false;
+      if (!res.ok) { showToast(res.error); return; }
+      showToast(state.evalEditingId ? 'Оцінку збережено' : 'Оцінку внесено');
+      resetEvalForm();
+      loadEvals();
+    };
+    var onFail = function (err) {
+      els.evalSubmitBtn.disabled = false;
+      showToast(String(err));
+    };
+
+    var call = state.evalEditingId
+      ? callApi('updateEval', [initData, state.evalEditingId, payload])
+      : callApi('submitEval', [initData, payload]);
+
+    call.then(onDone).catch(onFail);
+  });
+
+  els.evalCancelEditBtn.addEventListener('click', resetEvalForm);
+
+  function loadEvals() {
+    els.evalRecordsContainer.innerHTML = '<div class="empty-hint">Завантаження…</div>';
+    callApi('listMyEvals', [initData])
+      .then(function (res) {
+        if (!res.ok) { els.evalRecordsContainer.innerHTML = '<div class="empty-hint">' + res.error + '</div>'; return; }
+        renderEvalRecords(res.records);
+      })
+      .catch(function (err) {
+        els.evalRecordsContainer.innerHTML = '<div class="empty-hint">' + String(err) + '</div>';
+      });
+  }
+
+  function renderEvalRecords(records) {
+    if (!records || !records.length) {
+      els.evalRecordsContainer.innerHTML = '<div class="empty-hint">Поки що немає оцінок</div>';
+      return;
+    }
+
+    els.evalRecordsContainer.innerHTML = '';
+    records.forEach(function (r) {
+      var total = [r.meeting, r.needs, r.extraSales, r.sale, r.closing]
+        .reduce(function (sum, v) { return sum + (Number(v) || 0); }, 0);
+
+      var card = document.createElement('div');
+      card.className = 'record-card';
+      card.innerHTML =
+        '<div class="top"><span>' + (r.date || '') + ' ' + (r.time || '') + '</span><span>' + total + ' / 10</span></div>' +
+        '<div class="title">' + escapeHtml_(r.storeName) + '</div>' +
+        '<div class="fabula">' + escapeHtml_(r.seller) + ' — ' + escapeHtml_(r.comment) + '</div>' +
+        '<div class="record-actions">' +
+        '<button class="edit">Редагувати</button>' +
+        '<button class="delete">Видалити</button>' +
+        '</div>';
+
+      card.querySelector('.edit').addEventListener('click', function () { startEditEval(r); });
+      card.querySelector('.delete').addEventListener('click', function () { confirmDeleteEval(r); });
+
+      els.evalRecordsContainer.appendChild(card);
+    });
+  }
+
+  function startEditEval(r) {
+    resetEvalForm();
+    state.evalEditingId = r.id;
+
+    var store = selectEvalStoreByCode(r.storeCode);
+    if (!store) {
+      els.evalStoreInput.value = r.storeName;
+      els.evalManagerInput.value = r.manager;
+    }
+
+    els.evalSellerInput.value = r.seller || '';
+    els.evalTimeInput.value = r.time || '';
+    els.evalGenderSelect.value = r.gender || 'м';
+    els.evalCommentInput.value = r.comment || '';
+
+    els.evalFormTitle.textContent = 'Редагування оцінки';
+    els.evalSubmitBtn.textContent = 'Зберегти';
+    els.evalCancelEditBtn.classList.remove('hidden');
+  }
+
+  function confirmDeleteEval(r) {
+    var doDelete = function () {
+      callApi('deleteEval', [initData, r.id])
+        .then(function (res) {
+          if (!res.ok) { showToast(res.error); return; }
+          showToast('Видалено');
+          loadEvals();
+        })
+        .catch(function (err) { showToast(String(err)); });
+    };
+
+    if (tg && tg.showConfirm) {
+      tg.showConfirm('Видалити цю оцінку?', function (ok) { if (ok) doDelete(); });
+    } else if (window.confirm('Видалити цю оцінку?')) {
       doDelete();
     }
   }

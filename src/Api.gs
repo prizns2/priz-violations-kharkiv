@@ -219,3 +219,84 @@ function api_deleteRecord(initDataRaw, id) {
     return { ok: false, error: String(e.message || e) };
   }
 }
+
+/****************************************************************
+ * ОЦІНКА ОБСЛУГОВУВАННЯ
+ ****************************************************************/
+
+function validateEvalPayload_(payload) {
+  if (!payload || !payload.storeCode) throw new Error('Не вказано ТТ');
+  if (!payload.seller) throw new Error('Не вказано продавця');
+  if (!payload.comment) throw new Error('Не вказано коментар');
+}
+
+function buildEvalFields_(payload) {
+  var storeMap = getStoreMap_(getSpreadsheet_());
+  var store = storeMap[payload.storeCode];
+  if (!store) throw new Error('ТТ ' + payload.storeCode + ' не знайдена у довіднику «Пример»');
+
+  return {
+    date: todayKyiv_(),
+    storeName: store.name,
+    storeCode: store.code,
+    manager: store.manager,
+    seller: payload.seller,
+    time: payload.time || '',
+    gender: payload.gender || '',
+    comment: payload.comment,
+    scores: detectEvalScores_(payload.comment)
+  };
+}
+
+function api_submitEval(initDataRaw, payload) {
+  var ss = getSpreadsheet_();
+  var user = null;
+  try {
+    user = verifyInitData_(initDataRaw);
+    validateEvalPayload_(payload);
+    var id = generateRecordId_();
+    var fields = buildEvalFields_(payload);
+    appendEval_(ss, fields, id);
+    return { ok: true, id: id, scores: fields.scores };
+  } catch (e) {
+    logError_(ss, 'Помилка внесення оцінки', String(e.message || e), user, payload);
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+function api_listMyEvals(initDataRaw) {
+  try {
+    verifyInitData_(initDataRaw);
+    return { ok: true, records: listOwnEvals_(getSpreadsheet_()) };
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+function api_updateEval(initDataRaw, id, payload) {
+  var ss = getSpreadsheet_();
+  var user = null;
+  try {
+    user = verifyInitData_(initDataRaw);
+    validateEvalPayload_(payload);
+    var fields = buildEvalFields_(payload);
+    updateEval_(ss, id, fields);
+    return { ok: true, scores: fields.scores };
+  } catch (e) {
+    logError_(ss, 'Помилка редагування оцінки', String(e.message || e), user, payload);
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+function api_deleteEval(initDataRaw, id) {
+  var ss = getSpreadsheet_();
+  var user = null;
+  try {
+    user = verifyInitData_(initDataRaw);
+    deleteEval_(ss, id);
+    return { ok: true };
+  } catch (e) {
+    logError_(ss, 'Помилка видалення оцінки', String(e.message || e), user, { id: id });
+    return { ok: false, error: String(e.message || e) };
+  }
+}

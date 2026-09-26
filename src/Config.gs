@@ -20,6 +20,10 @@ var CONFIG = {
   STORE_SORT_COLUMN: 16, // P — числовий номер ТТ для сортування
   FIRST_DATA_ROW: 2,
 
+  SHEET_EVAL: 'Оценка',
+  EVAL_ID_COLUMN: 18, // R — службовий ID запису (нова колонка, у листі раніше не було)
+  EVAL_FIRST_DATA_ROW: 2,
+
   RECORD_ID_PREFIX: 'app:',
   TIMEZONE: 'Europe/Kyiv'
 };
