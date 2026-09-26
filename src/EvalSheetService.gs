@@ -52,14 +52,37 @@ function writeEvalRow_(sheet, row, fields) {
   sheet.getRange(row, 15, 1, 1).setValue(fields.comment);
 }
 
+/**
+ * Лист «Оценка» — це заготовка: порожні відформатовані рядки (списки, формули суми
+ * в N) розтягнуті далеко вниз. Тому getLastRow() тут не годиться — шукаємо
+ * останній рядок, де заповнені Дата або Продавець, і пишемо в наступний.
+ */
+function findNextEvalRow_(sheet) {
+  var start = CONFIG.EVAL_FIRST_DATA_ROW;
+  var maxRows = sheet.getMaxRows();
+  var values = sheet.getRange(start, 3, maxRows - start + 1, 2).getValues();
+
+  var lastFilled = 0;
+  for (var i = values.length - 1; i >= 0; i--) {
+    if (values[i][0] !== '' || values[i][1] !== '') { lastFilled = start + i; break; }
+  }
+  return { row: lastFilled ? lastFilled + 1 : start, lastFilled: lastFilled };
+}
+
 function appendEval_(ss, fields, id) {
   var sheet = getEvalSheet_(ss);
-  var lastDataRow = Math.max(sheet.getLastRow(), CONFIG.EVAL_FIRST_DATA_ROW - 1);
-  var targetRow = lastDataRow + 1;
+  var next = findNextEvalRow_(sheet);
+  var targetRow = next.row;
 
-  ensureSheetHasRow_(sheet, targetRow);
-  var templateRow = lastDataRow >= CONFIG.EVAL_FIRST_DATA_ROW ? lastDataRow : CONFIG.EVAL_FIRST_DATA_ROW;
-  prepareNewRow_(sheet, templateRow, targetRow);
+  if (targetRow > sheet.getMaxRows()) {
+    // заготовка закінчилась: копіюємо рядок цілком (формули, формат, валідація), чистимо введені поля
+    ensureSheetHasRow_(sheet, targetRow);
+    var lastColumn = Math.max(sheet.getLastColumn(), CONFIG.EVAL_ID_COLUMN);
+    sheet.getRange(next.lastFilled, 1, 1, lastColumn).copyTo(sheet.getRange(targetRow, 1, 1, lastColumn));
+    sheet.getRange(targetRow, 1, 1, 13).clearContent();
+    sheet.getRange(targetRow, 15).clearContent();
+    sheet.setRowHeight(targetRow, sheet.getRowHeight(next.lastFilled));
+  }
 
   writeEvalRow_(sheet, targetRow, fields);
   sheet.getRange(targetRow, CONFIG.EVAL_ID_COLUMN).setValue(id);
