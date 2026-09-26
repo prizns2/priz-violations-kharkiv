@@ -214,6 +214,10 @@
       .catch(function (err) { showToast(String(err)); });
   });
 
+  els.rawText.addEventListener('input', function () {
+    if (!els.rawText.value.trim()) resetForm();
+  });
+
   function applyParsed(res) {
     clearWarnings();
 
