@@ -4,6 +4,29 @@ Telegram Mini App на Google Apps Script. Пользователь вставл
 приложение само раскладывает его по колонкам и пишет строку в Google Таблицу.
 Пользуется только владелец. Язык интерфейса — русский.
 
+## Статус: работает end-to-end (проверено владельцем — внесение, редактирование, удаление)
+
+## Архитектура (важно!)
+Mini App — это **два отдельных хостинга**, не один:
+- **Фронтенд** (`docs/index.html`, `docs/styles.css`, `docs/app.js`) — статические файлы на
+  **GitHub Pages**: https://prizns2.github.io/priz-violations-kharkiv/ (репозиторий
+  `prizns2/priz-violations-kharkiv`, публичный — нужен для бесплатного Pages, секретов в коде нет).
+- **Бэкенд** (`src/*.gs`) — Google Apps Script, отдаёт только JSON через `doPost` (RPC-шлюз
+  `{fn, args}` → результат соответствующей `api_*` функции) и `doGet` (health-check Script Properties).
+
+**Почему не один Apps Script веб-апп, как задумывалось изначально:** Apps Script в реальном браузере
+подаёт HtmlService-страницу через вложенный `<iframe>` на другом домене (`googleusercontent.com`).
+Telegram передаёт `initData` через `#hash` URL, который открывает поверх — а наш JS выполняется уже
+внутри вложенного iframe с другим адресом, и хеш до него не доходит. Итог: `Telegram.WebApp.initData`
+всегда пустой, если саму страницу отдаёт Apps Script. Проверено на живом устройстве (debugInfo_()
+показывал `platform=unknown version=6.0 initData.length=0`). Поэтому страницу переехала на GitHub
+Pages, а к Apps Script `docs/app.js` обращается через `fetch()` с `Content-Type: text/plain` (обходит
+CORS-preflight, который Apps Script не умеет отвечать).
+
+При любом изменении `docs/*` — не нужно ничего пересобирать, GitHub Pages подхватывает пуш в master
+за 1-2 минуты. При изменении `src/*.gs` — `clasp push`, затем передеплой существующего deployment
+(`clasp deploy --deploymentId <id>` ИЛИ через UI: Deploy → Manage deployments → ✏️ → New version → Deploy).
+
 ## Что уже сделано
 - `src/Parser.js` — разбор текста: ТТ, ПІБ, фабула, категория + тип (автоопределение
   по фабуле, 35 типов), суммы шкоди. Хвост «N категорія, тип» необязателен и имеет приоритет.
@@ -12,15 +35,17 @@ Telegram Mini App на Google Apps Script. Пользователь вставл
 - `src/Config.gs`, `src/TelegramAuth.gs`, `src/SheetService.gs`, `src/Api.gs`, `src/Code.gs` —
   backend Apps Script: запись/редактирование/удаление строк в «Категория 1/2», справочник ТТ
   (лист «Пример», колонки AE/AF — подтверждено на живой таблице), сортировка по B, затем P,
-  копирование формата/валидации с последней строки — логика повторяет `appendRecordsBatch_`
+  копирование формата/валидации з останнього рядка — логика повторяет `appendRecordsBatch_`
   старого бота («Вносит нарушения Харькова», id `17baXcGR5pJjzzIHBxSfpReIF1pUQGN3PLOVPUFX2ugMjIhTpQgQIMXkn`).
   Колонки L, M («Всього виявлено порушень»), N («П.І.Б оператора») бот не трогает — как и старый бот,
   это формулы/агрегаты, не обновляются построчно.
-- `src/index.html`, `src/Styles.html`, `src/JavaScript.html` — Mini App, два экрана
+- `docs/index.html`, `docs/styles.css`, `docs/app.js` — Mini App на GitHub Pages, два экрана
   («Внести» с автозаполнением по тексту и поиском ТТ, «Останні» со списком/редактированием/удалением
-  своих записей по префиксу `app:` в колонке O).
-- Ещё не сделано: сам Apps Script проект не создан (нужен `clasp login` от владельца), Script Properties
-  (`BOT_TOKEN`, `OWNER_TELEGRAM_ID`) не заданы, бот у @BotFather не создан, веб-приложение не задеплоено.
+  своих записей по префиксу `app:` в колонке O). Тёмная фиолетово-розовая тема (карточки, pill-навигация).
+- Бот **@priz_kh_violations_bot**, токен в Script Properties (`BOT_TOKEN`), владелец —
+  `OWNER_TELEGRAM_ID=589669433` (тот же человек, что и `ADMIN_USER_ID` в старом боте).
+  Apps Script проект: https://script.google.com/d/1omqtovPJFVbJNsXGwIbC7OUBXaVZ8WAC2MgbfJsQCtdemkZ5fxlT0mwg/edit,
+  активный deployment id `AKfycbzv-tzr18zzcxzixppgyDm26FbR4rIE4cffIEFp8HgtoeDfaf2Wqwcmej1J_-s3au8_zg`.
 
 ## Таблица
 - «Харків таблиця обліку», ID `19Y4GkwXSijz93NFUVHzGiiNinD-NkSWk0aNDfdL7ya4`
@@ -52,5 +77,12 @@ Telegram Mini App на Google Apps Script. Пользователь вставл
 - Доступ: проверять Telegram `initData` (HMAC по токену) и что user.id = владелец.
 
 ## Деплой
-- clasp (`npm i -g @google/clasp`), отдельный Apps Script проект, веб-приложение
-  «выполнять от моего имени», URL веб-приложения → кнопка меню бота (BotFather / setChatMenuButton).
+- Backend: clasp (`npm i -g @google/clasp`), отдельный Apps Script проект, веб-приложение
+  «выполнять от моего имені» (`USER_DEPLOYING`), доступ «Anyone» (`ANYONE_ANONYMOUS`).
+  Новый деплой через `clasp deploy` без `--deploymentId` сначала НЕ применяет доступ «Anyone» из
+  манифеста — деплой нужно один раз создать/авторизовать через UI (Deploy → New deployment →
+  Web app → Authorize access), дальше `clasp deploy --deploymentId <тот же id>` обновляет его нормально.
+- Frontend: GitHub Pages, включён через `gh api repos/prizns2/priz-violations-kharkiv/pages`
+  (source: branch `master`, path `/docs`).
+- Кнопка меню бота (`setChatMenuButton`, type `web_app`) указывает на GitHub Pages URL, НЕ на
+  Apps Script `/exec` URL.
