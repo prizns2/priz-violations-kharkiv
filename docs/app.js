@@ -117,6 +117,8 @@
     submitBtn: document.getElementById('submit-btn'),
     cancelEditBtn: document.getElementById('cancel-edit-btn'),
     recordsContainer: document.getElementById('records-container'),
+    recordsClearBtn: document.getElementById('records-clear-btn'),
+    evalRecordsClearBtn: document.getElementById('eval-records-clear-btn'),
     toast: document.getElementById('toast')
   };
 
@@ -493,6 +495,32 @@
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* без кешу теж працює */ }
   }
 
+  /* «Очистить» лише ховає записи зі списку (в таблиці вони лишаються):
+     запам'ятовуємо їх ID і далі не показуємо. Нові записи з'являються як завжди. */
+  function hiddenIds_(key) {
+    return cacheGet_(key) || [];
+  }
+
+  function visible_(records, key) {
+    var hidden = hiddenIds_(key);
+    return (records || []).filter(function (r) { return hidden.indexOf(r.id) === -1; });
+  }
+
+  function clearList_(cacheKey, hiddenKey, render) {
+    var ids = (cacheGet_(cacheKey) || []).map(function (r) { return r.id; });
+    // тримаємо тільки ID, які ще можуть прийти з сервера (останні ~30), щоб список не ріс
+    cacheSet_(hiddenKey, hiddenIds_(hiddenKey).concat(ids).slice(-200));
+    render(cacheGet_(cacheKey));
+  }
+
+  els.recordsClearBtn.addEventListener('click', function () {
+    clearList_('recs', 'hiddenRecs', renderRecords);
+  });
+
+  els.evalRecordsClearBtn.addEventListener('click', function () {
+    clearList_('evals', 'hiddenEvals', renderEvalRecords);
+  });
+
   /* Показуємо збережений список одразу, а свіжий підтягуємо у фоні. */
   function loadRecords() {
     var cached = cacheGet_('recs');
@@ -515,7 +543,9 @@
   }
 
   function renderRecords(records) {
-    if (!records || !records.length) {
+    records = visible_(records, 'hiddenRecs');
+    els.recordsClearBtn.classList.toggle('hidden', !records.length);
+    if (!records.length) {
       els.recordsContainer.innerHTML = '<div class="empty-hint">Пока нет записей</div>';
       return;
     }
@@ -716,7 +746,9 @@
   }
 
   function renderEvalRecords(records) {
-    if (!records || !records.length) {
+    records = visible_(records, 'hiddenEvals');
+    els.evalRecordsClearBtn.classList.toggle('hidden', !records.length);
+    if (!records.length) {
       els.evalRecordsContainer.innerHTML = '<div class="empty-hint">Пока нет оценок</div>';
       return;
     }
@@ -784,22 +816,33 @@
 
   /* ---------- старт ---------- */
 
-  callApi('bootstrap', [initData])
+  /* Без полоски сверху: справочник из кеша сразу, свежий — в фоне. */
+  function applyBootstrap_(res) {
+    state.storeList = res.storeList;
+    state.category1 = res.category1;
+    state.category2 = res.category2;
+    var selected = els.violationSelect.value;
+    fillViolationSelect();
+    els.violationSelect.value = selected;
+  }
+
+  var cachedBoot = cacheGet_('boot');
+  if (cachedBoot) applyBootstrap_(cachedBoot);
+  loadRecords();
+  loadEvals();
+
+  callApi('bootstrap', [initData], true)
     .then(function (res) {
       if (!res.ok) {
         document.getElementById('app').innerHTML =
           '<div class="empty-hint">' + res.error + '<br><br><small>' + debugInfo_() + '</small></div>';
         return;
       }
-      state.storeList = res.storeList;
-      state.category1 = res.category1;
-      state.category2 = res.category2;
-      fillViolationSelect();
-      loadRecords();
-      loadEvals();
+      cacheSet_('boot', { storeList: res.storeList, category1: res.category1, category2: res.category2 });
+      applyBootstrap_(res);
     })
     .catch(function (err) {
-      document.getElementById('app').innerHTML = '<div class="empty-hint">' + String(err) + '</div>';
+      if (!cachedBoot) document.getElementById('app').innerHTML = '<div class="empty-hint">' + String(err) + '</div>';
     });
 
 })();

@@ -207,6 +207,18 @@ button.secondary {
 
 .record-actions button.delete { color: var(--danger); }
 
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.card-head h2 { margin: 0; }
+
+.clear-btn {
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .empty-hint { color: var(--text-secondary); text-align: center; margin-top: 40px; line-height: 1.5; }
 
 .bulk-item {
